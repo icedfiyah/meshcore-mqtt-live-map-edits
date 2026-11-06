@@ -131,7 +131,7 @@ runtime or hosted publication; verify those independently before release.
 - Ambiguous 1-byte prefixes are now handled conservatively: if multiple nodes share the same first byte, the map skips broad closest/time-based guesses and only keeps the hop when there is stronger evidence such as a unique match or neighbor/manual adjacency.
 
 ## Frontend UI
-- Header includes the HUD summary (stats, feed note); the HUD footer links to `SOURCE_URL` (GPL-3.0 source offer).
+- Header includes the HUD summary (stats, feed note).
 - Base map toggle: Dark/Light (OpenFreeMap `dark` / `positron` vector styles); persisted to localStorage, invalid values fall back to `dark`.
 - Dark map also darkens node popups for readability.
 - Node popups do not auto-pan; dragging the map won’t snap back to keep a popup in view.

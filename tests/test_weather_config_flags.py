@@ -18,7 +18,7 @@ def test_root_has_no_weather_or_los_attributes(monkeypatch):
   assert 'id="los-panel"' not in response.text
   assert 'id="weather-panel"' not in response.text
   assert 'id="prop-panel"' not in response.text
-  assert 'id="source-link"' in response.text
+  assert 'id="source-link"' not in response.text
 
 
 def test_root_injects_boundary_config(monkeypatch):

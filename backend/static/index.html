@@ -141,7 +141,7 @@
       <button class="map-toggle" id="history-toggle" type="button">History tool</button>
       <button class="map-toggle" id="peers-toggle" type="button">Peers tool</button>
       <button class="map-toggle" id="hops-toggle" type="button">Show hops</button>
-      <div class="route-byte-control">
+      <div class="route-byte-control" hidden style="display:none">
         <span class="route-byte-label">Path bytes</span>
         <details class="byte-dropdown" id="route-byte-filter">
           <summary aria-label="Route path byte filter"><span class="byte-summary-label">All</span></summary>
@@ -179,7 +179,7 @@
           <div class="legend-item"><span class="legend-coverage legend-coverage-drop"></span> DROP</div>
         </div>
         <div class="legend-item"><span class="legend-heat"></span> Heat (last 10 min)</div>
-        <div class="legend-item legend-item-filter"><span class="legend-dot legend-online"></span><span id="mqtt-online-label">MQTT online
+        <div class="legend-item legend-item-filter" hidden style="display:none"><span class="legend-dot legend-online"></span><span id="mqtt-online-label">MQTT online
             (last 5 min)</span>
           <button class="legend-filter-button" id="mqtt-only-toggle" type="button" aria-pressed="false"
             title="Only show MQTT online nodes">Only</button>
@@ -197,8 +197,6 @@
           <button class="legend-filter-button role-filter-button" data-role-filter="unknown" type="button">Shown</button>
         </div>
       </div>
-      <div class="small hud-footer"><a class="hud-source-link" id="source-link" href="{{SOURCE_URL}}" target="_blank"
-          rel="noopener">Source code</a> · GPL-3.0</div>
     </div>
   </div>
   <div class="history-panel tool-panel" id="history-panel" hidden>
@@ -213,7 +211,7 @@
       <input id="history-filter" type="range" min="0" max="4" step="1" value="0" />
     </label>
     <div class="small" id="history-filter-label">All links</div>
-    <div class="history-field">
+    <div class="history-field" hidden style="display:none">
       <span>Path bytes</span>
       <details class="byte-dropdown history-byte-dropdown" id="history-byte-filter">
         <summary><span class="byte-summary-label">All</span></summary>

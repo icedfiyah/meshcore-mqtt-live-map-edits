@@ -180,7 +180,7 @@ Site metadata (page title + embeds):
 - `SITE_URL` (public URL)
 - `APP_BASE_PATH` (optional public subpath such as `/livemap`; leave blank for normal root hosting). The app strips the prefix itself (ASGI `root_path`), so a reverse proxy must forward the prefix unchanged, e.g. nginx `location /livemap/ { proxy_pass http://127.0.0.1:8080; }` (no trailing URI on `proxy_pass`).
 - `SITE_ICON` (default `/static/icon.svg`)
-- `SOURCE_URL` (public URL of this fork's source code; shown in the HUD footer, required for GPL-3.0 compliance when you distribute a modified build)
+- `SOURCE_URL` (public URL of this fork's source code; not shown in the UI; reserved for a credits page, required for GPL-3.0 compliance when you distribute a modified build)
 - `SITE_FEED_NOTE`
 - `CUSTOM_LINK_URL` (optional extra HUD link; hidden when blank)
 - `PACKET_ANALYZER_URL` (optional legacy analyzer base URL for Route Details hashes; leave blank when using `CORESCOPE_URL`)

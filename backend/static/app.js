@@ -542,16 +542,9 @@ const normalizeByteFilterSet = (selected) => {
 };
 const defaultRouteByteFilter = parseByteFilterSet(config.routeByteFilterDefault) || new Set(['all']);
 const defaultHistoryByteFilter = parseByteFilterSet(config.historyByteFilterDefault) || new Set(['all']);
-let routeByteFilter = normalizeByteFilterSet(
-  queryRouteByteFilter ||
-  parseByteFilterSet(localStorage.getItem('meshmapRouteByteFilter')) ||
-  defaultRouteByteFilter
-);
-let historyByteFilter = normalizeByteFilterSet(
-  queryHistoryByteFilter ||
-  parseByteFilterSet(localStorage.getItem('meshmapHistoryByteFilter')) ||
-  defaultHistoryByteFilter
-);
+// Path-byte filtering is disabled in this build: always show all paths.
+let routeByteFilter = new Set(['all']);
+let historyByteFilter = new Set(['all']);
 let routeNodeFilterText = queryRouteNodeFilter ||
   localStorage.getItem('meshmapRouteNodeFilter') || '';
 let routeNodeMatches = [];
