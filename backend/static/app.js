@@ -1300,6 +1300,11 @@ function setNodesVisible(visible) {
     if (!map.hasLayer(routeLayer)) {
       routeLayer.addTo(map);
     }
+    // Re-adding the layer recreates the SVG paths; restore the dash animation class.
+    routeLines.forEach((entry) => {
+      const el = entry && entry.line && entry.line.getElement && entry.line.getElement();
+      if (el) el.classList.toggle('route-animated', !arcadeModeEnabled);
+    });
     if (arcadeModeEnabled && !map.hasLayer(arcadeLayer)) {
       arcadeLayer.addTo(map);
     }
