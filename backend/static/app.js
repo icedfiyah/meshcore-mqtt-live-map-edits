@@ -3315,7 +3315,7 @@ function upsertDevice(d, trail) {
   }
 
   // trail polyline (skip companions)
-  if (role !== 'companion' && Array.isArray(trail) && trail.length >= 2) {
+  if (false && role !== 'companion' && Array.isArray(trail) && trail.length >= 2) {  // trails disabled
     const points = splitTrailPoints(trail);
     if (!Array.isArray(points) || points.length < 1) {
       if (polylines.has(id)) {
