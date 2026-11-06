@@ -761,10 +761,7 @@ function markerStyleForRole(role) {
 function markerStyleForDevice(d) {
   const role = resolveRole(d);
   const base = markerStyleForRole(role);
-  if (isMqttOnline(d)) {
-    return { ...base, color: '#22c55e', weight: 3 };
-  }
-  return base;
+  return base;  // no special MQTT-online highlight
 }
 
 function applyMqttPresenceSummary(summary) {
@@ -4585,6 +4582,8 @@ function setBaseLayer(name) {
       if (!canvas.__meshmapContextWatched) {
         canvas.__meshmapContextWatched = true;
         canvas.addEventListener('webglcontextlost', () => {
+          // Switching maps destroys the old layer's GL context on purpose; only react to a real loss of the active layer.
+          if (!map.hasLayer(target) || baseLayer !== name) return;
           if (map.hasLayer(target)) map.removeLayer(target);
           if (baseLayers[name] === target) baseLayers[name] = null;
           if (baseLayer === name) setBaseLayer(name);
