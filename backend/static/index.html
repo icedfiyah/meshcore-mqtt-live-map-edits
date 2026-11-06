@@ -9,7 +9,7 @@
   <title>{{SITE_TITLE}}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="{{SITE_DESCRIPTION}}" />
-  <link rel="icon" href="{{SITE_ICON}}" type="image/png" />
+  <link rel="icon" href="{{SITE_ICON}}" />
   <link rel="apple-touch-icon" href="{{SITE_ICON}}" />
   <link rel="manifest" href="{{MANIFEST_HREF}}" />
   <meta name="theme-color" content="#0f172a" />
@@ -23,8 +23,8 @@
   <meta name="twitter:title" content="{{SITE_TITLE}}" />
   <meta name="twitter:description" content="{{SITE_DESCRIPTION}}" />
   {{TWITTER_IMAGE_TAG}}
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="{{STATIC_BASE}}/vendor/leaflet/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
   <link rel="stylesheet" href="{{STATIC_BASE}}/vendor/maplibre/maplibre-gl.css"
     integrity="sha384-S+OnE5M4U3Qc2nR0RgljGrVs06xqfRg8L7uFk/pOF5+sRuSDG4oKkqKZmFrx7w09"
     crossorigin="anonymous" />
@@ -36,13 +36,8 @@
   data-trail-max-segment-km="{{TRAIL_MAX_SEGMENT_KM}}"
   data-map-radius-show="{{MAP_RADIUS_SHOW}}" data-map-boundary-mode="{{MAP_BOUNDARY_MODE}}"
   data-map-boundary-show="{{MAP_BOUNDARY_SHOW}}" data-map-boundary-name="{{MAP_BOUNDARY_NAME}}"
-  data-map-default-layer="{{MAP_DEFAULT_LAYER}}" data-carto-basemap-key="{{CARTO_BASEMAP_KEY}}"
-  data-prod-mode="{{PROD_MODE}}" data-prod-token="{{PROD_TOKEN}}" data-los-elevation-url="{{LOS_ELEVATION_URL}}"
-  data-los-elevation-proxy-url="{{LOS_ELEVATION_PROXY_URL}}"
-  data-los-sample-min="{{LOS_SAMPLE_MIN}}" data-los-sample-max="{{LOS_SAMPLE_MAX}}"
-  data-los-sample-step-meters="{{LOS_SAMPLE_STEP_METERS}}"
-  data-los-curvature-enabled="{{LOS_CURVATURE_ENABLED}}"
-  data-los-curvature-factor="{{LOS_CURVATURE_FACTOR}}" data-los-peaks-max="{{LOS_PEAKS_MAX}}"
+  data-map-default-layer="{{MAP_DEFAULT_LAYER}}"
+  data-prod-mode="{{PROD_MODE}}" data-prod-token="{{PROD_TOKEN}}"
   data-mqtt-online-seconds="{{MQTT_ONLINE_SECONDS}}"
   data-mqtt-online-status-ttl-seconds="{{MQTT_ONLINE_STATUS_TTL_SECONDS}}"
   data-mqtt-online-internal-ttl-seconds="{{MQTT_ONLINE_INTERNAL_TTL_SECONDS}}"
@@ -63,12 +58,6 @@
   data-corescope-url="{{CORESCOPE_URL}}"
   data-qr-code-button-enabled="{{QR_CODE_BUTTON_ENABLED}}"
   data-app-version="{{APP_VERSION}}"
-  data-weather-radar-enabled="{{WEATHER_RADAR_ENABLED}}"
-  data-weather-radar-country-bounds-enabled="{{WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED}}"
-  data-weather-radar-country-lookup-url="{{WEATHER_RADAR_COUNTRY_LOOKUP_URL}}"
-  data-weather-wind-enabled="{{WEATHER_WIND_ENABLED}}" data-weather-wind-api-url="{{WEATHER_WIND_API_URL}}"
-  data-weather-wind-grid-size="{{WEATHER_WIND_GRID_SIZE}}"
-  data-weather-wind-refresh-seconds="{{WEATHER_WIND_REFRESH_SECONDS}}"
   data-update-available="{{UPDATE_AVAILABLE}}" data-update-local="{{UPDATE_LOCAL}}"
   data-update-remote="{{UPDATE_REMOTE}}" data-turnstile-enabled="{{TURNSTILE_ENABLED}}">
   <script id="map-boundary-data" type="application/json">{{MAP_BOUNDARY_JSON}}</script>
@@ -100,7 +89,11 @@
     <div class="hud-header">
       <div class="hud-brand">
         <button class="hud-toggle" id="hud-toggle" type="button" aria-label="Toggle panel">
-          <img class="hud-logo" src="{{SITE_ICON}}" alt="{{SITE_TITLE}}" />
+          <svg class="hud-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+            <path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"
+              fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
         </button>
         <div class="hud-title"><span class="pill">Live</span> {{SITE_TITLE}}</div>
       </div>
@@ -118,16 +111,9 @@
           <path d="M5 5h6v2H7v10h10v-4h2v6H5V5z" />
         </svg>
       </a>
-      <a class="hud-action hud-github" href="https://github.com/yellowcooln/meshcore-mqtt-live-map/" target="_blank"
-        rel="noopener" aria-label="GitHub repository">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M12 2C6.48 2 2 6.58 2 12.26c0 4.5 2.87 8.32 6.84 9.67.5.1.68-.23.68-.5v-1.77c-2.78.62-3.37-1.38-3.37-1.38-.46-1.2-1.12-1.52-1.12-1.52-.9-.64.07-.63.07-.63 1 .07 1.53 1.07 1.53 1.07.9 1.6 2.36 1.14 2.94.87.1-.66.35-1.14.63-1.4-2.22-.27-4.56-1.14-4.56-5.08 0-1.12.39-2.04 1.02-2.76-.1-.27-.45-1.37.1-2.86 0 0 .83-.27 2.72 1.05a9.2 9.2 0 0 1 2.48-.35c.84 0 1.68.12 2.48.35 1.88-1.32 2.7-1.05 2.7-1.05.56 1.5.21 2.6.11 2.86.64.72 1.02 1.64 1.02 2.76 0 3.95-2.34 4.8-4.57 5.07.36.33.68.97.68 1.96v2.9c0 .28.18.6.69.5A10.03 10.03 0 0 0 22 12.26C22 6.58 17.52 2 12 2z" />
-        </svg>
-      </a>
     </div>
     <div class="hud-body">
-      <div class="small">MeshCore live map • markers update in real time{{TRAIL_INFO_SUFFIX}} • click logo to hide/show
+      <div class="small">MeshCore live map • markers update in real time{{TRAIL_INFO_SUFFIX}} • click the icon to hide/show
         HUD elements</div>
       <div class="small">{{SITE_FEED_NOTE}}</div>
       <div class="small" id="stats"></div>
@@ -147,18 +133,14 @@
       </div>
       <button class="legend-toggle" id="legend-toggle" type="button">Hide legend</button>
       <button class="map-toggle" id="map-toggle" type="button">Dark map</button>
-      <button class="map-toggle" id="topo-toggle" type="button">Topo map</button>
       <button class="map-toggle" id="units-toggle" type="button">Units: km</button>
       <button class="map-toggle" id="labels-toggle" type="button">Labels Off</button>
       <button class="map-toggle" id="nodes-toggle" type="button">Hide nodes</button>
       <button class="map-toggle" id="heat-toggle" type="button">Hide heat</button>
       <button class="map-toggle" id="coverage-toggle" type="button">Coverage</button>
-      <button class="map-toggle" id="weather-toggle" type="button">Weather</button>
       <button class="map-toggle" id="history-toggle" type="button">History tool</button>
       <button class="map-toggle" id="peers-toggle" type="button">Peers tool</button>
       <button class="map-toggle" id="hops-toggle" type="button">Show hops</button>
-      <button class="map-toggle" id="los-toggle" type="button">LOS tool</button>
-      <button class="map-toggle" id="prop-toggle" type="button">Propagation</button>
       <div class="route-byte-control">
         <span class="route-byte-label">Path bytes</span>
         <details class="byte-dropdown" id="route-byte-filter">
@@ -196,12 +178,6 @@
           <div class="legend-item"><span class="legend-coverage legend-coverage-dead"></span> DEAD</div>
           <div class="legend-item"><span class="legend-coverage legend-coverage-drop"></span> DROP</div>
         </div>
-        <div class="legend-los-group" id="legend-los-group">
-          <div class="legend-item"><span class="legend-line legend-los-clear"></span> LOS clear</div>
-          <div class="legend-item"><span class="legend-line legend-los-blocked"></span> LOS blocked</div>
-          <div class="legend-item"><span class="legend-dot legend-los-peak"></span> LOS peak</div>
-          <div class="legend-item"><span class="legend-dot legend-los-relay"></span> Relay suggested</div>
-        </div>
         <div class="legend-item"><span class="legend-heat"></span> Heat (last 10 min)</div>
         <div class="legend-item legend-item-filter"><span class="legend-dot legend-online"></span><span id="mqtt-online-label">MQTT online
             (last 5 min)</span>
@@ -221,50 +197,8 @@
           <button class="legend-filter-button role-filter-button" data-role-filter="unknown" type="button">Shown</button>
         </div>
       </div>
-    </div>
-  </div>
-  <div class="los-panel tool-panel" id="los-panel">
-    <div class="tool-panel-header">
-      <div class="small"><strong>Line of Sight</strong></div>
-      <button class="tool-panel-collapse" id="los-panel-collapse" type="button"
-        aria-controls="los-panel" aria-expanded="true">Minimize</button>
-    </div>
-    <div class="small" id="los-status"></div>
-    <label class="los-field">
-      <span>Start pin height (m)</span>
-      <input id="los-height-a" type="number" inputmode="numeric" step="1" value="0" />
-    </label>
-    <label class="los-field">
-      <span>End pin height (m)</span>
-      <input id="los-height-b" type="number" inputmode="numeric" step="1" value="0" />
-    </label>
-    <div class="los-point-editor">
-      <div class="small"><strong>Pin coordinates</strong></div>
-      <div class="small" id="los-point-label">No pin selected.</div>
-      <label class="los-field">
-        <span>Latitude</span>
-        <input id="los-point-lat" type="number" inputmode="decimal" step="0.000001" placeholder="-33.868820" />
-      </label>
-      <label class="los-field">
-        <span>Longitude</span>
-        <input id="los-point-lon" type="number" inputmode="decimal" step="0.000001" placeholder="151.209296" />
-      </label>
-      <label class="los-field">
-        <span>Pin height (m)</span>
-        <input id="los-point-height" type="number" inputmode="numeric" step="1" value="0" />
-      </label>
-      <div class="los-actions">
-        <button class="map-toggle" id="los-add-coords" type="button">Add pin from coords</button>
-        <button class="map-toggle" id="los-update-point" type="button">Move selected pin</button>
-      </div>
-    </div>
-    <div class="small">Add pins to build a route. Select a segment to edit its start and end pin heights. Heights are above ground at that pin. Click the profile to copy coordinates.</div>
-    <button class="map-toggle" id="los-remove-last" type="button">Remove last pin</button>
-    <button class="map-toggle" id="los-clear" type="button">Clear LOS pins</button>
-    <div class="los-profile" id="los-profile" hidden>
-      <div class="small los-profile-title">Elevation profile</div>
-      <svg id="los-profile-svg" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
-      <div class="los-profile-tooltip" id="los-profile-tooltip" hidden></div>
+      <div class="small hud-footer"><a class="hud-source-link" id="source-link" href="{{SOURCE_URL}}" target="_blank"
+          rel="noopener">Source code</a> · GPL-3.0</div>
     </div>
   </div>
   <div class="history-panel tool-panel" id="history-panel" hidden>
@@ -296,15 +230,6 @@
       <input id="history-link-size" type="range" min="0" max="100" step="1" value="50" />
     </label>
     <div class="small" id="history-link-size-value">1.0x</div>
-  </div>
-  <div class="weather-panel" id="weather-panel" hidden>
-    <button class="panel-close" id="weather-hide" type="button" aria-label="Hide weather panel">×</button>
-    <div class="small"><strong>Weather</strong></div>
-    <div class="small">Toggle overlays independently.</div>
-    <div class="weather-controls">
-      <button class="map-toggle" id="weather-radar-layer-toggle" type="button">Radar: on</button>
-      <button class="map-toggle" id="weather-wind-layer-toggle" type="button">Wind: on</button>
-    </div>
   </div>
   <div class="peers-panel tool-panel" id="peers-panel" hidden>
     <div class="tool-panel-header">
@@ -344,122 +269,6 @@
     <div class="small" id="route-details-total"></div>
     <div class="route-details-content" id="route-details-content"></div>
   </div>
-  <div class="prop-panel tool-panel" id="prop-panel">
-    <div class="tool-panel-header">
-      <div class="small"><strong>Propagation estimate</strong></div>
-      <button class="tool-panel-collapse" id="prop-panel-collapse" type="button"
-        aria-controls="prop-panel" aria-expanded="true">Minimize</button>
-    </div>
-    <div class="small">LoRa 910.525 MHz • BW 62.5 kHz • SF7 • CR8</div>
-    <div class="small">Uses selected TX antenna gain (default 3 dBi), 6 dB noise figure, 10 dB fade margin.</div>
-    <div class="small">Defaults assume 5 m AGL; MSL overrides use terrain data.</div>
-    <label class="prop-field">
-      <span>Tx power (dBm)<span class="prop-hint" title="transmit power used for link budget"
-          data-tooltip="transmit power used for link budget">?</span></span>
-      <input id="prop-txpower" type="number" min="2" max="30" step="1" value="22" />
-    </label>
-    <label class="prop-field">
-      <span>TX antenna gain (dBi)<span class="prop-hint" title="antenna gain added to TX power for range estimates"
-          data-tooltip="antenna gain added to TX power for range estimates">?</span></span>
-      <input id="prop-tx-gain" type="number" min="-10" max="20" step="0.5" value="3" />
-    </label>
-    <label class="prop-field">
-      <span>Opacity<span class="prop-hint" title="overlay transparency"
-          data-tooltip="overlay transparency">?</span></span>
-      <input id="prop-opacity" type="range" min="0.05" max="0.6" step="0.05" value="0.2" />
-    </label>
-    <label class="prop-field">
-      <span>Model<span class="prop-hint" title="path-loss environment profile (best-case matches the Meshcore app)"
-          data-tooltip="path-loss environment profile (best-case matches the Meshcore app)">?</span></span>
-      <select id="prop-model">
-        <option value="free" selected>Best-case (free-space)</option>
-        <option value="suburban">Suburban</option>
-        <option value="urban">Urban</option>
-        <option value="indoor">Indoor/obstructed</option>
-      </select>
-    </label>
-    <label class="prop-field">
-      <span>Terrain adjust<span class="prop-hint" title="apply terrain diffraction using elevation tiles"
-          data-tooltip="apply terrain diffraction using elevation tiles">?</span></span>
-      <input id="prop-terrain" type="checkbox" checked />
-    </label>
-    <label class="prop-field">
-      <span>Tx AGL (m)<span class="prop-hint" title="transmitter height above ground"
-          data-tooltip="transmitter height above ground">?</span></span>
-      <input id="prop-tx-agl" type="number" min="0" max="50" step="0.5" value="5" />
-    </label>
-    <label class="prop-field">
-      <span>Tx MSL override (m)<span class="prop-hint" title="override transmitter altitude above sea level"
-          data-tooltip="override transmitter altitude above sea level">?</span></span>
-      <input id="prop-tx-msl" type="number" min="-100" max="9000" step="1" placeholder="auto" />
-    </label>
-    <label class="prop-field">
-      <span>Rx AGL (m)<span class="prop-hint" title="receiver height above ground"
-          data-tooltip="receiver height above ground">?</span></span>
-      <input id="prop-rx-agl" type="number" min="0" max="50" step="0.5" value="1" />
-    </label>
-    <label class="prop-field">
-      <span>Rx MSL override (m)<span class="prop-hint" title="override receiver altitude above sea level"
-          data-tooltip="override receiver altitude above sea level">?</span></span>
-      <input id="prop-rx-msl" type="number" min="-100" max="9000" step="1" placeholder="auto" />
-    </label>
-    <label class="prop-field">
-      <span>Min Rx cutoff (dBm)<span class="prop-hint" title="enter your SNR value here"
-          data-tooltip="enter your SNR value here">?</span></span>
-      <input id="prop-min-rx" type="number" min="-150" max="-60" step="1" value="-97" />
-    </label>
-    <label class="prop-field">
-      <span>Auto range (cutoff)<span class="prop-hint" title="derive range from min Rx cutoff"
-          data-tooltip="derive range from min Rx cutoff">?</span></span>
-      <input id="prop-auto-range" type="checkbox" checked />
-    </label>
-    <label class="prop-field">
-      <span>Multi-origin<span class="prop-hint" title="allow multiple transmitters in one render"
-          data-tooltip="allow multiple transmitters in one render">?</span></span>
-      <input id="prop-multi-origin" type="checkbox" checked />
-    </label>
-    <label class="prop-field">
-      <span>Fade by margin<span class="prop-hint" title="fade coverage by link margin strength"
-          data-tooltip="fade coverage by link margin strength">?</span></span>
-      <input id="prop-fade-margin" type="checkbox" />
-    </label>
-    <label class="prop-field">
-      <span>WebGPU (experimental)<span class="prop-hint" title="GPU-accelerated render (terrain off)"
-          data-tooltip="GPU-accelerated render (terrain off)">?</span></span>
-      <input id="prop-webgpu" type="checkbox" />
-    </label>
-    <div class="small">Tip: click an origin marker to remove it.</div>
-    <button class="map-toggle" id="prop-clear-origins" type="button">Clear origins</button>
-    <label class="prop-field">
-      <span>Auto resolution<span class="prop-hint" title="scale grid to stay within target cells"
-          data-tooltip="scale grid to stay within target cells">?</span></span>
-      <input id="prop-auto-res" type="checkbox" checked />
-    </label>
-    <label class="prop-field">
-      <span>Target cells<span class="prop-hint" title="upper bound for grid cell count"
-          data-tooltip="upper bound for grid cell count">?</span></span>
-      <input id="prop-max-cells" type="number" min="20000" max="500000" step="10000" value="120000" />
-    </label>
-    <label class="prop-field">
-      <span>Grid step (m)<span class="prop-hint" title="spacing between coverage samples"
-          data-tooltip="spacing between coverage samples">?</span></span>
-      <input id="prop-grid" type="number" min="30" max="300" step="10" value="90" />
-    </label>
-    <label class="prop-field">
-      <span>Sample step (m)<span class="prop-hint" title="terrain sampling interval along each ray"
-          data-tooltip="terrain sampling interval along each ray">?</span></span>
-      <input id="prop-sample" type="number" min="30" max="300" step="10" value="90" />
-    </label>
-    <label class="prop-field">
-      <span>Range factor<span class="prop-hint" title="scale the base range estimate"
-          data-tooltip="scale the base range estimate">?</span></span>
-      <input id="prop-range-factor" type="range" min="0.25" max="1" step="0.05" value="1" />
-    </label>
-    <button class="map-toggle" id="prop-render" type="button">Render prop</button>
-    <div class="small" id="prop-range"></div>
-    <div class="small" id="prop-cost"></div>
-    <div class="small" id="prop-status"></div>
-  </div>
   <div class="qr-modal" id="qr-modal" hidden>
     <div class="qr-modal-backdrop" id="qr-modal-backdrop"></div>
     <div class="qr-modal-card" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
@@ -474,9 +283,9 @@
   </div>
   <div id="map"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  <script src="{{STATIC_BASE}}/vendor/leaflet/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"
+  <script src="{{STATIC_BASE}}/vendor/leaflet-heat/leaflet-heat.js"
     integrity="sha384-mFKkGiGvT5vo1fEyGCD3hshDdKmW3wzXW/x+fWriYJArD0R3gawT6lMvLboM22c0"
     crossorigin="anonymous"></script>
   <script type="module" src="{{STATIC_BASE}}/map-renderer.mjs?v={{ASSET_VERSION}}"></script>

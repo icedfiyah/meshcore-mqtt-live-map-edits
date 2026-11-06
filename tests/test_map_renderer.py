@@ -58,46 +58,59 @@ const module = new vm.SourceTextModule(fs.readFileSync(process.argv[2], 'utf8'),
 
 
 @pytest.mark.parametrize("failure", ["unavailable", "add", "context"])
-def test_dark_failure_keeps_raster_and_truthful_theme(failure):
+def test_vector_failure_falls_back_to_plain_background(failure):
+  """No raster tile providers exist: when the OpenFreeMap vector layer cannot
+  be shown the map keeps the requested theme and shows a plain background."""
   source = (STATIC / "app.js").read_text()
   start = source.index("function setBaseLayer(")
-  end = source.index("function nextStandardMapLayer(", start)
+  end = source.index("\nif (mapToggle) {", start)
   script = r"""
 const assert = require('node:assert/strict');
-const lightTiles = {name: 'light'}, topoTiles = {}, satelliteTiles = {};
 const events = {};
-const darkTiles = FAILURE === 'unavailable' ? null : {
-  name: 'dark',
+const makeLayer = (name) => ({
+  name,
   getMaplibreMap: () => ({getCanvas: () => ({
-    addEventListener(name, callback) {events[name] = callback;}
+    addEventListener(evt, callback) {events[evt] = callback;}
   })})
-};
-const layers = new Set([lightTiles]);
+});
+const lightLayer = makeLayer('light');
+const baseLayers = {light: lightLayer, dark: FAILURE === 'unavailable' ? null : makeLayer('dark')};
+const validLayers = new Set(['dark', 'light']);
+const layers = new Set([lightLayer]);
 const map = {
   hasLayer(layer) {assert.ok(layer); return layers.has(layer);},
   removeLayer(layer) {layers.delete(layer);},
   addLayer(layer) {
     assert.ok(layer); layers.add(layer);
-    if (FAILURE === 'add' && layer === darkTiles) throw new Error('WebGL unavailable');
+    if (FAILURE === 'add' && layer === baseLayers.dark) throw new Error('WebGL unavailable');
   }
 };
-let baseLayer = 'dark', stored = '', isDark = false;
-const document = {body: {classList: {toggle(name, value) {isDark = value;}}}};
+let baseLayer = 'light', stored = '';
+const classes = {};
+const document = {body: {classList: {toggle(name, value) {classes[name] = value;}}}};
 const localStorage = {setItem(key, value) {stored = value;}};
-const mapToggle = {}, topoToggle = {};
-const reportError = () => {};
+const mapToggle = {};
+let warnings = 0;
+const reportError = () => { warnings += 1; };
+let plainBasemapWarned = false;
 FUNCTION
 setBaseLayer('dark');
 if (FAILURE === 'context') {
   assert.equal(typeof events.webglcontextlost, 'function');
+  assert.equal(classes['plain-map'], false);
   events.webglcontextlost();
 }
-assert.equal(baseLayer, 'light');
-assert.equal(stored, 'light');
-assert.equal(isDark, false);
-assert.equal(layers.size, 1);
-assert.ok(layers.has(lightTiles));
-assert.equal(mapToggle.textContent, 'Dark map');
+assert.equal(baseLayer, 'dark');
+assert.equal(stored, 'dark');
+assert.equal(classes['dark-map'], true);
+assert.equal(classes['plain-map'], true);
+assert.equal(layers.size, 0);
+assert.equal(baseLayers.dark, null);
+assert.equal(warnings, 1);
+assert.equal(mapToggle.textContent, 'Light map');
+// Invalid names fall back to dark.
+setBaseLayer('satellite');
+assert.equal(baseLayer, 'dark');
 """.replace("FAILURE", json.dumps(failure)).replace(
     "FUNCTION", source[start:end])
   result = subprocess.run(["node", "-e", script],

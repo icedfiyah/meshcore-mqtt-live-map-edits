@@ -36,7 +36,7 @@ from state import (
   neighbor_edges,
   seen_devices,
 )
-from los import _haversine_m
+from boundary import _haversine_m
 
 LATLON_KEYS_LAT = ("lat", "latitude")
 LATLON_KEYS_LON = ("lon", "lng", "longitude")

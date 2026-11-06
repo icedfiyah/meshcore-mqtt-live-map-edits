@@ -1,5 +1,13 @@
 # Mesh Live Map
 
+> **Fork notice.** This fork removes the LOS, Propagation and Weather tools, the
+> server-rendered social preview tiles, and every raster basemap. The only
+> third-party map provider is OpenFreeMap (`tiles.openfreemap.org`, `dark` and
+> `light`/Positron vector styles); Leaflet and Leaflet.heat are served
+> same-origin from `static/vendor/`. Set `SOURCE_URL` to the public location of
+> this fork's source to satisfy GPL-3.0. Upstream project:
+> https://github.com/yellowcooln/meshcore-mqtt-live-map
+
 Version: `1.9.8` (see [VERSIONS.md](VERSIONS.md))
 
 Live MeshCore traffic map that renders nodes, routes, and activity in real time on a Leaflet map. The backend subscribes to MQTT over WebSockets+TLS or TCP, decodes MeshCore packets with the official [`@michaelhart/meshcore-decoder`](https://www.npmjs.com/package/@michaelhart/meshcore-decoder), and streams updates to the browser via WebSockets.
@@ -34,9 +42,8 @@ Other community maps (versions may differ):
 - Peers tool showing incoming/outgoing neighbors with on-map lines, compact Rx/Tx headings, peer counts, packet totals, and per-peer count/percent/distance stats
 - Coverage layer from the legacy [coverage map API](https://github.com/nullrouten0/meshcore-coverage-map) or the new [MeshMapper Coverage API](https://github.com/MeshMapper/MeshMapper_Wiki/blob/main/docs/coverage-api.md) (button hidden when not configured)
 - MeshMapper coverage viewport sync reuses cached rectangles instead of recreating every visible square on each pan/zoom, which keeps the coverage layer responsive on larger meshes
-- Weather tool panel with independent Radar and Wind toggles
 - Update available banner (git local vs upstream) with dismiss
-- UI controls: legend toggle, dark map, topo map, units toggle (km/mi), labels toggle, hide nodes, heat toggle, temporary MQTT-only filter
+- UI controls: legend toggle, dark/light map, units toggle (km/mi), labels toggle, hide nodes, heat toggle, temporary MQTT-only filter
 - Route path-byte filter for `All`, `1-byte`, `2-byte`, or `3-byte` live route views, with matching hop markers and Route Details
 - Share button that copies a URL with current view + settings
 - Optional `APP_BASE_PATH` support for hosting the map under a subpath such as `/livemap`
@@ -44,7 +51,6 @@ Other community maps (versions may differ):
 - Node search by name or public key
 - Node popups can copy the full public key from the short key shown under the node name, copy a direct `node=` map link, and optionally expose a MeshCore contact QR modal that shows the node name plus a clickable truncated key
 - Adjustable node size slider (defaults from env, saves locally)
-- LOS tool with elevation profile + peak markers, hover sync, direct lat/lon pin entry, realtime draggable endpoints (Shift+click or long‑press nodes), and Earth-curvature-aware blockage checks
 - Embeddable metadata (Open Graph/Twitter tags) driven by env vars
 - Preview image renders in-bounds device dots for shared links
 - Route pruning via neighbor-aware closest-hop selection + max hop distance (configurable)
@@ -52,19 +58,15 @@ Other community maps (versions may differ):
 - First-hop collision fix prefers the closest repeater/room to the sender (Issue #11)
 - Mixed hop-prefix support for path decoding (`AB`, `ABCD`, and `ABCDEF`, including mixed networks during rollout)
 - Optional legacy route fallback for colliding 1-byte hop prefixes via `ROUTE_ALLOW_AMBIGUOUS_ONE_BYTE_FALLBACK=true`
-- Propagation panel lives on the right and keeps the last render until you generate a new one (click an origin marker to remove it)
-- Propagation tool supports adjustable **TX antenna gain (dBi)**, and now defaults **Rx AGL** to **1m**
 - Installable PWA (manifest + service worker) for Add to Home Screen
-- Click the logo to hide/show the left HUD panel while tools stay open
+- Click the HUD icon to hide/show the left HUD panel while tools stay open
 
 ## Project Structure
 - `backend/app.py`: FastAPI server wiring, MQTT lifecycle, WS broadcast
 - `backend/config.py`: environment configuration
 - `backend/state.py`: shared in-memory state + dataclasses
 - `backend/decoder.py`: payload parsing + multibyte MeshCore decoder integration
-- `backend/los.py`: LOS math + elevation helpers
 - `backend/history.py`: route history persistence + pruning
-- `backend/weather.py`: weather radar country-bounds lookup API
 - `backend/static/index.html`: HTML shell + template placeholders
 - `backend/static/styles.css`: UI styles
 - `backend/static/app.js`: map logic + UI controls
@@ -176,8 +178,9 @@ Site metadata (page title + embeds):
 - `SITE_DESCRIPTION`
 - `SITE_OG_IMAGE` (optional; leave blank to omit embed image)
 - `SITE_URL` (public URL)
-- `APP_BASE_PATH` (optional public subpath such as `/livemap`; leave blank for normal root hosting)
-- `SITE_ICON`
+- `APP_BASE_PATH` (optional public subpath such as `/livemap`; leave blank for normal root hosting). The app strips the prefix itself (ASGI `root_path`), so a reverse proxy must forward the prefix unchanged, e.g. nginx `location /livemap/ { proxy_pass http://127.0.0.1:8080; }` (no trailing URI on `proxy_pass`).
+- `SITE_ICON` (default `/static/icon.svg`)
+- `SOURCE_URL` (public URL of this fork's source code; shown in the HUD footer, required for GPL-3.0 compliance when you distribute a modified build)
 - `SITE_FEED_NOTE`
 - `CUSTOM_LINK_URL` (optional extra HUD link; hidden when blank)
 - `PACKET_ANALYZER_URL` (optional legacy analyzer base URL for Route Details hashes; leave blank when using `CORESCOPE_URL`)
@@ -219,22 +222,6 @@ Routing accuracy:
 - If multiple nodes share the same first byte, the map no longer guesses from broad closest/time-based fallbacks.
 - Colliding 1-byte hops only resolve when there is stronger evidence such as a unique candidate or known neighbor/manual adjacency.
 - `ROUTE_ALLOW_AMBIGUOUS_ONE_BYTE_FALLBACK=true` restores the pre-`v1.7.0` fallback behavior for networks that need the older route rendering.
-
-Weather overlay:
-- `WEATHER_RADAR_ENABLED`:
-  master switch for radar support. If both `WEATHER_RADAR_ENABLED=false` and `WEATHER_WIND_ENABLED=false`, the Weather button is hidden.
-- `WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED`:
-  set `true` to keep radar inside the country around the map center; set `false` for unrestricted radar tiles.
-- `WEATHER_RADAR_COUNTRY_LOOKUP_URL`:
-  keep default (`/weather/radar/country-bounds`) unless you run your own country-bounds endpoint.
-- `WEATHER_WIND_ENABLED`:
-  set `true` to show Wind in the Weather panel, or `false` to disable wind entirely.
-- `WEATHER_WIND_API_URL`:
-  endpoint for wind data (default is Open-Meteo; custom APIs must provide current wind speed/direction).
-- `WEATHER_WIND_GRID_SIZE`:
-  number of wind samples per side (`1`-`5`); larger grid gives more arrows but increases API load.
-- `WEATHER_WIND_REFRESH_SECONDS`:
-  wind refresh interval (seconds, minimum `30`); increase this to reduce API calls.
 
 Device + route tuning:
 - `DEVICE_TTL_HOURS` (advert/device stale window; default `96`)
@@ -282,21 +269,12 @@ Update checks:
 - `GIT_CHECK_PATH` (path to git repo in the container)
 - `GIT_CHECK_INTERVAL_SECONDS` (defaults to 43200 = 12h)
 
-Map + LOS:
+Map:
 - `MAP_START_LAT` / `MAP_START_LON` / `MAP_START_ZOOM` (default map view)
-- `MAP_DEFAULT_LAYER` (`light`, `dark`, `topo`, or `satellite`; localStorage overrides)
-  - `satellite` uses open Sentinel-2 cloudless imagery from EOX with OpenStreetMap/CARTO labels and borders overlaid.
+- `MAP_DEFAULT_LAYER` (`dark` or `light`; both are OpenFreeMap vector styles; invalid or stale localStorage values fall back to `dark`)
 - The `dark` layer uses the keyless OpenFreeMap Dark vector style through MapLibre GL Leaflet, with OpenFreeMap, OpenMapTiles, and OpenStreetMap attribution. No API key is required.
-- `CARTO_BASEMAP_KEY` is optional and is used only for CARTO satellite labels and server-generated dark social preview tiles. Keep it per-project and out of Git. Without a key, satellite imagery remains available without the CARTO label overlay and dark previews fall back to OpenStreetMap. See [Configure an optional CARTO key](howto.md#optional-carto-key-for-satellite-labels-and-dark-previews).
 - `MAP_RADIUS_KM` (`0` disables radius filtering; `.env.example` uses `241.4` km ≈ 150mi)
 - `MAP_RADIUS_SHOW` (`true` draws the radius debug circle)
-- `LOS_ELEVATION_URL` (elevation API for LOS tool)
-- `LOS_ELEVATION_PROXY_URL` (server proxy for client-side LOS elevation fetches)
-- `LOS_SAMPLE_MIN` / `LOS_SAMPLE_MAX` / `LOS_SAMPLE_STEP_METERS`
-- `ELEVATION_CACHE_TTL` (seconds)
-- `LOS_CURVATURE_ENABLED` (default `true`; include Earth curvature in LOS calculations)
-- `LOS_CURVATURE_FACTOR` (default `1.333333`; effective Earth radius multiplier used by the LOS tool)
-- `LOS_PEAKS_MAX` (max peaks shown on LOS profile)
 
 Decoder helpers:
 - `DECODE_WITH_NODE` (toggle Node-based MeshCore decoder usage)
@@ -356,15 +334,9 @@ Use it:
 - The legend `MQTT online` row includes an `Only` filter that temporarily hides non-MQTT markers, trails, routes, hop markers, route details, and peer lines. This filter is local to the current page view only; it is not saved in browser storage and is not added to share links.
 - Live route IDs are observer-aware (`message_hash:receiver_id`) so the same
   message seen by multiple MQTT observers does not overwrite active lines.
-- Line-of-sight tool: click **LOS tool** and add pins to build a chained path, or **Shift+click** nodes to place LOS pins from existing nodes. You can also add pins directly from the LOS panel with latitude/longitude + pin height inputs. Drag endpoints or click a pin and then click the map to move that specific point, or update its coordinates from the panel. Heights are stored per pin.
-- On mobile, long‑press a node to select it for LOS.
-- LOS elevations are fetched via `/los/elevations` and LOS/relay math runs client-side (with `/los` fallback).
-- LOS now includes Earth curvature by default using an effective Earth radius factor of `1.333333`, unless you override the LOS curvature envs.
-- LOS and Propagation stay as separate tools on the same map so path obstruction checks and RF coverage planning can be used together without combining their controls into one panel.
 - History tool always loads off (use the button or `history=on` in the URL).
 - Peers tool uses dedicated rolling peer-history buckets so 24h counts stay accurate even on high-volume meshes; peer links are still counted from route `point_ids` even when a hop could not be drawn on the map, distances are shown in the selected km/mi units when both endpoints have coordinates, compact headings show Rx/Tx packet totals and unique peer counts, and forced MQTT listeners are excluded from peer lists.
 - Route History and Peers are now independent: `ROUTE_HISTORY_ENABLED=false` disables the History tool and history payloads, but peer counts continue updating from live routes.
-- URL params override stored settings: `lat`, `lon`/`lng`/`long`, `zoom`, `layer`, `history`, `heat`, `coverage`, `weather`, `weather_radar`, `weather_wind`, `labels`, `nodes`, `legend`, `menu`, `units`, `history_filter`, `route_bytes`, `route_nodes`, `history_bytes`, `roles`, and direct node focus via `node`/`repeater`/`device_id`.
 - Dark map also darkens node popups for readability.
 - Route styling uses payload type: 2/5 = Message (blue), 8/9 = Trace (orange), 4 = Advert (green).
 - Turnstile browser auth (`meshmap_auth`/`?auth=`) is for map + WS session flow;

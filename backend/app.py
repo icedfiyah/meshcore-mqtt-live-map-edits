@@ -24,7 +24,13 @@ from fastapi import (
   HTTPException,
   Query,
 )
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+from fastapi.responses import (
+  FileResponse,
+  HTMLResponse,
+  JSONResponse,
+  RedirectResponse,
+  Response,
+)
 from fastapi.staticfiles import StaticFiles
 from urllib.parse import (
   urlencode,
@@ -34,7 +40,6 @@ from urllib.parse import (
   urlparse,
 )
 from io import BytesIO
-from PIL import Image, ImageDraw
 import math
 
 import state
@@ -73,17 +78,8 @@ from history import (
   _route_history_saver,
 )
 from backup import _backup_loop
-from weather import create_weather_router
 from turnstile import TurnstileVerifier
-from los import (
-  _fetch_elevations,
-  _find_los_peaks,
-  _find_los_suggestion,
-  _los_effective_elevations,
-  _haversine_m,
-  _los_max_obstruction,
-  _sample_los_points,
-)
+from boundary import _haversine_m
 
 
 logger = logging.getLogger(__name__)
@@ -166,6 +162,7 @@ from config import (
   SITE_OG_IMAGE,
   SITE_URL,
   SITE_ICON,
+  SOURCE_URL,
   SITE_FEED_NOTE,
   CUSTOM_LINK_URL,
   PACKET_ANALYZER_URL,
@@ -188,18 +185,8 @@ from config import (
   MAP_BOUNDARY_FILE,
   MAP_BOUNDARY_SHOW,
   MAP_DEFAULT_LAYER,
-  CARTO_BASEMAP_KEY,
   PROD_MODE,
   PROD_TOKEN,
-  LOS_ELEVATION_URL,
-  LOS_ELEVATION_PROXY_URL,
-  LOS_SAMPLE_MIN,
-  LOS_SAMPLE_MAX,
-  LOS_SAMPLE_STEP_METERS,
-  ELEVATION_CACHE_TTL,
-  LOS_CURVATURE_ENABLED,
-  LOS_CURVATURE_FACTOR,
-  LOS_PEAKS_MAX,
   COVERAGE_API_URL,
   COVERAGE_API_KEY,
   COVERAGE_API_KEYS,
@@ -207,13 +194,6 @@ from config import (
   COVERAGE_CACHE_FILE,
   COVERAGE_RATE_LIMIT_COOLDOWN_SECONDS,
   COVERAGE_SYNC_INTERVAL_SECONDS,
-  WEATHER_RADAR_ENABLED,
-  WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED,
-  WEATHER_RADAR_COUNTRY_LOOKUP_URL,
-  WEATHER_WIND_ENABLED,
-  WEATHER_WIND_API_URL,
-  WEATHER_WIND_GRID_SIZE,
-  WEATHER_WIND_REFRESH_SECONDS,
   APP_VERSION,
   APP_DIR,
   NODE_SCRIPT_PATH,
@@ -245,7 +225,6 @@ from state import (
   node_hash_to_device,
   node_hash_collisions,
   node_hash_candidates,
-  elevation_cache,
   device_names,
   message_origins,
   device_roles,
@@ -278,16 +257,14 @@ def _http_site_origin(request: Request) -> str:
   return f"{scheme}://{host}"
 
 
-def _public_preview_png_url(request: Request, query: str) -> str:
-  """Absolute URL for preview.png including APP_BASE_PATH."""
-  path = public_app_path("/preview.png")
-  return f"{_http_site_origin(request)}{path}?{query}"
-
-
 def _map_preview_meta(
   request: Request, page_path: str = "/"
 ) -> Tuple[str, str, str]:
-  """Return OG image tags, Twitter image tag, and canonical map URL."""
+  """Return OG image tags, Twitter image tag, and canonical map URL.
+
+  Only the static SITE_OG_IMAGE is used; no per-coordinate preview tiles are
+  fetched from third-party tile providers.
+  """
   query_params = request.query_params
   lat_param = query_params.get("lat") or query_params.get("latitude")
   lon_param = (
@@ -300,40 +277,17 @@ def _map_preview_meta(
   twitter_image_tag = ""
   og_url = SITE_URL
 
+  if SITE_OG_IMAGE:
+    safe_image = html.escape(str(SITE_OG_IMAGE), quote=True)
+    og_image_tag = f'<meta property="og:image" content="{safe_image}" />'
+    twitter_image_tag = f'<meta name="twitter:image" content="{safe_image}" />'
+
   if lat_param and lon_param:
     try:
       lat = float(lat_param)
       lon = float(lon_param)
       zoom = int(zoom_param) if zoom_param and zoom_param.isdigit() else 13
       zoom = max(1, min(18, zoom))
-
-      preview_params = urlencode(
-        {
-          "lat": lat,
-          "lon": lon,
-          "zoom": zoom,
-          "marker": "blue",
-          "theme": "dark",
-        }
-      )
-      preview_url = _public_preview_png_url(request, preview_params)
-      safe_image = html.escape(preview_url, quote=True)
-      og_image_tag = (
-        f'<meta property="og:image" content="{safe_image}" />\n'
-        f'  <meta property="og:image:width" content="1200" />\n'
-        f'  <meta property="og:image:height" content="630" />\n'
-        f'  <meta property="og:image:type" content="image/png" />'
-      )
-      twitter_image_tag = (
-        f'<meta name="twitter:image" content="{safe_image}" />'
-      )
-      if SITE_OG_IMAGE:
-        safe_static_image = html.escape(str(SITE_OG_IMAGE), quote=True)
-        og_image_tag += (
-          f'\n  <meta property="og:image:secure_url" '
-          f'content="{safe_static_image}" />'
-        )
-
       page_base = _http_site_origin(request) + public_app_path(page_path)
       if page_path == "/":
         page_base = page_base.rstrip("/")
@@ -341,32 +295,9 @@ def _map_preview_meta(
       if zoom_param:
         og_url += f"&zoom={zoom}"
     except (ValueError, TypeError):
-      if SITE_OG_IMAGE:
-        safe_image = html.escape(str(SITE_OG_IMAGE), quote=True)
-        og_image_tag = f'<meta property="og:image" content="{safe_image}" />'
-        twitter_image_tag = (
-          f'<meta name="twitter:image" content="{safe_image}" />'
-        )
-  elif SITE_OG_IMAGE:
-    safe_image = html.escape(str(SITE_OG_IMAGE), quote=True)
-    og_image_tag = f'<meta property="og:image" content="{safe_image}" />'
-    twitter_image_tag = f'<meta name="twitter:image" content="{safe_image}" />'
+      pass
 
   return og_image_tag, twitter_image_tag, og_url
-
-
-def _client_los_proxy_url() -> str:
-  p = (LOS_ELEVATION_PROXY_URL or "").strip()
-  if p.startswith("/") and not p.startswith("//"):
-    return public_app_path(p)
-  return p
-
-
-def _client_weather_radar_lookup_url() -> str:
-  p = (WEATHER_RADAR_COUNTRY_LOOKUP_URL or "").strip()
-  if p.startswith("/") and not p.startswith("//"):
-    return public_app_path(p)
-  return p
 
 
 def _history_edge_payloads() -> List[Dict[str, Any]]:
@@ -2096,7 +2027,6 @@ def _require_prod_token(request: Request) -> None:
     raise HTTPException(status_code=401, detail="unauthorized")
 
 
-app.include_router(create_weather_router(_require_prod_token))
 
 
 def _ws_authorized(ws: WebSocket) -> bool:
@@ -3371,6 +3301,8 @@ def root(request: Request):
       SAFE_OG_URL,
     "SITE_ICON":
       _public_if_root_relative(SITE_ICON),
+    "SOURCE_URL":
+      SOURCE_URL,
     "APP_BASE_PATH":
       APP_BASE_PATH,
     "MANIFEST_HREF":
@@ -3441,24 +3373,6 @@ def root(request: Request):
       get_map_boundary_name(),
     "MAP_DEFAULT_LAYER":
       MAP_DEFAULT_LAYER,
-    "CARTO_BASEMAP_KEY":
-      CARTO_BASEMAP_KEY,
-    "LOS_ELEVATION_URL":
-      LOS_ELEVATION_URL,
-    "LOS_ELEVATION_PROXY_URL":
-      _client_los_proxy_url(),
-    "LOS_SAMPLE_MIN":
-      LOS_SAMPLE_MIN,
-    "LOS_SAMPLE_MAX":
-      LOS_SAMPLE_MAX,
-    "LOS_SAMPLE_STEP_METERS":
-      LOS_SAMPLE_STEP_METERS,
-    "LOS_CURVATURE_ENABLED":
-      str(LOS_CURVATURE_ENABLED).lower(),
-    "LOS_CURVATURE_FACTOR":
-      LOS_CURVATURE_FACTOR,
-    "LOS_PEAKS_MAX":
-      LOS_PEAKS_MAX,
     "MQTT_ONLINE_SECONDS":
       MQTT_ONLINE_SECONDS,
     "MQTT_ONLINE_STATUS_TTL_SECONDS":
@@ -3469,20 +3383,6 @@ def root(request: Request):
       MQTT_ACTIVITY_PACKETS_TTL_SECONDS,
     "COVERAGE_API_URL":
       COVERAGE_API_URL,
-    "WEATHER_RADAR_ENABLED":
-      str(WEATHER_RADAR_ENABLED).lower(),
-    "WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED":
-      str(WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED).lower(),
-    "WEATHER_RADAR_COUNTRY_LOOKUP_URL":
-      _client_weather_radar_lookup_url(),
-    "WEATHER_WIND_ENABLED":
-      str(WEATHER_WIND_ENABLED).lower(),
-    "WEATHER_WIND_API_URL":
-      WEATHER_WIND_API_URL,
-    "WEATHER_WIND_GRID_SIZE":
-      WEATHER_WIND_GRID_SIZE,
-    "WEATHER_WIND_REFRESH_SECONDS":
-      WEATHER_WIND_REFRESH_SECONDS,
     "UPDATE_AVAILABLE":
       str(bool(git_update_info.get("available"))).lower(),
     "UPDATE_LOCAL":
@@ -3503,315 +3403,20 @@ def root(request: Request):
   return HTMLResponse(content, headers={"Cache-Control": "no-store"})
 
 
-def _preview_tile_url(
-  theme: str,
-  zoom: int,
-  tile_x: int,
-  tile_y: int,
-  api_key: Optional[str] = None,
-) -> str:
-  key = CARTO_BASEMAP_KEY if api_key is None else str(api_key).strip()
-  if theme == "dark" and key:
-    query = urlencode({"key": key})
-    return (
-      "https://a.basemaps.cartocdn.com/dark_all/"
-      f"{zoom}/{tile_x}/{tile_y}.png?{query}"
-    )
-  return f"https://tile.openstreetmap.org/{zoom}/{tile_x}/{tile_y}.png"
-
-
 @app.get("/preview.png")
-async def preview_image(
-  lat: Optional[float] = Query(None, alias="lat"),
-  lon: Optional[float] = Query(None, alias="lon"),
-  zoom: Optional[int] = Query(13, alias="zoom"),
-  marker: Optional[str] = Query("blue", alias="marker"),
-  theme: Optional[str] = Query("dark", alias="theme"),
-):
+async def preview_image():
+  """Social preview image.
+
+  Dynamic map tile rendering was removed (no third-party tile requests).
+  Redirects to the static SITE_OG_IMAGE when configured, otherwise 404.
   """
-    Generate a preview image of the map with a pin marker at the specified coordinates.
-    Returns a PNG image suitable for Open Graph/Twitter card previews.
-
-    Marker options:
-    - red-pin, blue-pin, green-pin, yellow-pin, orange-pin, purple-pin, black-pin, white-pin
-    - red, blue, green, yellow, orange, purple, black, white (simple circle markers)
-    - Custom format: color-pin or color (e.g., "blue-pin", "green")
-    """
-  if lat is None or lon is None:
-    # Return a default/error image if coordinates not provided
-    return Response(content=b"", status_code=400, media_type="image/png")
-
-  try:
-    zoom_val = max(1, min(18, int(zoom) if zoom else 14))
-
-    # Image dimensions for social media previews (Open Graph standard)
-    width = 1200
-    height = 630
-
-    # Validate and sanitize marker option
-    marker_str = str(marker).lower().strip() if marker else "blue"
-    if not marker_str or marker_str == "none":
-      marker_str = "blue"
-
-    # Validate theme option (light or dark)
-    theme_str = str(theme).lower().strip() if theme else "dark"
-    if theme_str not in ("light", "dark"):
-      theme_str = "dark"
-
-    # Generate map image server-side using OSM tiles
-    try:
-      # Convert lat/lon to tile coordinates
-      def deg2num(lat_deg, lon_deg, zoom_level):
-        lat_rad = math.radians(lat_deg)
-        n = 2.0**zoom_level
-        xtile = int((lon_deg + 180.0) / 360.0 * n)
-        ytile = int((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n)
-        return (xtile, ytile)
-
-      def num2deg(xtile, ytile, zoom_level):
-        n = 2.0**zoom_level
-        lon_deg = xtile / n * 360.0 - 180.0
-        lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
-        lat_deg = math.degrees(lat_rad)
-        return (lat_deg, lon_deg)
-
-      # Calculate which tiles we need
-      center_tile_x, center_tile_y = deg2num(lat, lon, zoom_val)
-      tile_size = 256
-      tiles_x = math.ceil(width / tile_size) + 2
-      tiles_y = math.ceil(height / tile_size) + 2
-
-      # Calculate pixel position of center point within its tile
-      # Get the northwest corner of the center tile
-      nw_lat, nw_lon = num2deg(center_tile_x, center_tile_y, zoom_val)
-      # Get the southeast corner of the center tile
-      se_lat, se_lon = num2deg(center_tile_x + 1, center_tile_y + 1, zoom_val)
-
-      # Calculate pixel offset within the center tile
-      center_tile_pixel_x = int((lon - nw_lon) / (se_lon - nw_lon) * tile_size)
-      center_tile_pixel_y = int((nw_lat - lat) / (nw_lat - se_lat) * tile_size)
-
-      # Calculate which tiles to fetch
-      start_tile_x = center_tile_x - tiles_x // 2
-      start_tile_y = center_tile_y - tiles_y // 2
-
-      # Create blank image with theme-appropriate background
-      bg_color = (
-        (18, 18, 18) if theme_str == "dark" else (242, 239, 233)
-      )  # Dark or light background
-      final_image = Image.new("RGB", (width, height), bg_color)
-
-      # Fetch and composite tiles
-      tiles_fetched = 0
-      tiles_failed = 0
-      async with httpx.AsyncClient(timeout=10.0) as client:
-        for ty in range(tiles_y):
-          for tx in range(tiles_x):
-            tile_x = start_tile_x + tx
-            tile_y = start_tile_y + ty
-
-            tile_url = _preview_tile_url(
-              theme_str, zoom_val, tile_x, tile_y
-            )
-
-            try:
-              response = await client.get(tile_url)
-              if response.status_code == 200:
-                tile_img = Image.open(BytesIO(response.content))
-                # Calculate position: center the marker at the center of the image
-                # The center tile should place the marker at the center pixel position
-                x_offset = (
-                  (tx - tiles_x // 2) * tile_size + width // 2 -
-                  center_tile_pixel_x
-                )
-                y_offset = (
-                  (ty - tiles_y // 2) * tile_size + height // 2 -
-                  center_tile_pixel_y
-                )
-                final_image.paste(
-                  tile_img,
-                  (x_offset, y_offset),
-                  tile_img if tile_img.mode == "RGBA" else None,
-                )
-                tiles_fetched += 1
-              else:
-                tiles_failed += 1
-                print(
-                  f"[preview] Tile {tile_x}/{tile_y} returned status {response.status_code}"
-                )
-            except Exception as tile_error:
-              tiles_failed += 1
-              print(
-                f"[preview] Failed to fetch tile {tile_x}/{tile_y}: {tile_error}"
-              )
-              continue
-
-      print(f"[preview] Fetched {tiles_fetched} tiles, {tiles_failed} failed")
-
-      # Draw current devices (all in-bounds, no cap)
-      def latlon_to_global_px(lat_deg: float, lon_deg: float,
-                              zoom_level: int) -> Tuple[float, float]:
-        lat_rad = math.radians(lat_deg)
-        n = 2.0**zoom_level
-        x_px = (lon_deg + 180.0) / 360.0 * n * tile_size
-        y_px = (
-          (1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n * tile_size
-        )
-        return (x_px, y_px)
-
-      draw = ImageDraw.Draw(final_image)
-      center_px_x, center_px_y = latlon_to_global_px(lat, lon, zoom_val)
-      node_radius = 5
-      node_color = (86, 198, 255) if theme_str == "dark" else (25, 83, 170)
-      node_outline = (15, 15, 15) if theme_str == "dark" else (255, 255, 255)
-      for state in _stable_dict_copy(devices).values():
-        try:
-          dev_lat = float(state.lat)
-          dev_lon = float(state.lon)
-        except Exception:
-          continue
-        if _coords_are_zero(dev_lat, dev_lon
-                           ) or not _within_map_radius(dev_lat, dev_lon):
-          continue
-        dev_px_x, dev_px_y = latlon_to_global_px(dev_lat, dev_lon, zoom_val)
-        img_x = width / 2 + (dev_px_x - center_px_x)
-        img_y = height / 2 + (dev_px_y - center_px_y)
-        if (
-          img_x < -node_radius or img_x > width + node_radius or
-          img_y < -node_radius or img_y > height + node_radius
-        ):
-          continue
-        draw.ellipse(
-          [
-            (img_x - node_radius, img_y - node_radius),
-            (img_x + node_radius, img_y + node_radius),
-          ],
-          fill=node_color,
-          outline=node_outline,
-          width=2,
-        )
-
-      # Draw marker
-      marker_color_map = {
-        "red": (220, 53, 69),
-        "blue": (0, 123, 255),
-        "green": (40, 167, 69),
-        "yellow": (255, 193, 7),
-        "orange": (255, 152, 0),
-        "purple": (108, 117, 125),
-        "black": (0, 0, 0),
-        "white": (255, 255, 255),
-      }
-      marker_color = marker_color_map.get(
-        marker_str, (0, 123, 255)
-      )  # Default to blue
-
-      # Calculate marker position (center of image)
-      marker_x = width // 2
-      marker_y = height // 2
-
-      # Draw a circle marker
-      marker_radius = 12
-      draw.ellipse(
-        [
-          (marker_x - marker_radius, marker_y - marker_radius),
-          (marker_x + marker_radius, marker_y + marker_radius),
-        ],
-        fill=marker_color,
-        outline=(255, 255, 255),
-        width=2,
-      )
-
-      # Convert to PNG bytes
-      img_bytes = BytesIO()
-      final_image.save(img_bytes, format="PNG")
-      img_bytes.seek(0)
-
-      return Response(
-        content=img_bytes.getvalue(),
-        media_type="image/png",
-        headers={
-          "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
-        },
-      )
-
-    except Exception as e:
-      print(f"[preview] Error generating map image: {e}")
-      import traceback
-
-      traceback.print_exc()
-
-      # Even if tile fetching fails, try to return a simple map with marker
-      try:
-        bg_color = (18, 18, 18) if theme_str == "dark" else (242, 239, 233)
-        fallback_image = Image.new("RGB", (width, height), bg_color)
-        draw = ImageDraw.Draw(fallback_image)
-
-        # Draw marker
-        marker_color_map = {
-          "red": (220, 53, 69),
-          "blue": (0, 123, 255),
-          "green": (40, 167, 69),
-          "yellow": (255, 193, 7),
-          "orange": (255, 152, 0),
-          "purple": (108, 117, 125),
-          "black": (0, 0, 0),
-          "white": (255, 255, 255),
-        }
-        marker_color = marker_color_map.get(marker_str, (0, 123, 255))
-        marker_x = width // 2
-        marker_y = height // 2
-        marker_radius = 12
-        draw.ellipse(
-          [
-            (marker_x - marker_radius, marker_y - marker_radius),
-            (marker_x + marker_radius, marker_y + marker_radius),
-          ],
-          fill=marker_color,
-          outline=(255, 255, 255),
-          width=2,
-        )
-
-        img_bytes = BytesIO()
-        fallback_image.save(img_bytes, format="PNG")
-        img_bytes.seek(0)
-
-        print(
-          f"[preview] Returning fallback image with marker (tile fetch failed)"
-        )
-        return Response(
-          content=img_bytes.getvalue(),
-          media_type="image/png",
-          headers={"Cache-Control": "public, max-age=300"},
-        )
-      except Exception as fallback_error:
-        print(
-          f"[preview] Fallback image generation also failed: {fallback_error}"
-        )
-        # Only redirect to static image if even fallback fails
-        if SITE_OG_IMAGE and SITE_OG_IMAGE.startswith("http"):
-          from fastapi.responses import RedirectResponse
-
-          print(
-            f"[preview] All image generation failed, redirecting to static OG image: {SITE_OG_IMAGE}"
-          )
-          return RedirectResponse(url=SITE_OG_IMAGE, status_code=302)
-
-        # Return transparent PNG as last resort
-        transparent_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82"
-        return Response(
-          content=transparent_png,
-          media_type="image/png",
-          headers={"Cache-Control": "public, max-age=300"},
-        )
-  except Exception as e:
-    # Log error for debugging
-    print(f"[preview] Error generating preview image: {e}")
-    import traceback
-
-    traceback.print_exc()
-    # Return empty image on error
-    return Response(content=b"", status_code=500, media_type="image/png")
+  if SITE_OG_IMAGE:
+    return RedirectResponse(
+      url=SITE_OG_IMAGE,
+      status_code=302,
+      headers={"Cache-Control": "public, max-age=3600"},
+    )
+  raise HTTPException(status_code=404, detail="No preview image configured")
 
 
 @app.get("/map")
@@ -3854,6 +3459,7 @@ def map_page(request: Request):
     "SITE_DESCRIPTION": SITE_DESCRIPTION,
     "SITE_URL": SAFE_OG_URL,
     "SITE_ICON": _public_if_root_relative(SITE_ICON),
+    "SOURCE_URL": SOURCE_URL,
     "APP_BASE_PATH": APP_BASE_PATH,
     "MANIFEST_HREF": public_app_path("/manifest.webmanifest"),
     "STATIC_BASE": public_app_path("/static"),
@@ -3889,27 +3495,11 @@ def map_page(request: Request):
     "MAP_BOUNDARY_SHOW": str(MAP_BOUNDARY_SHOW).lower(),
     "MAP_BOUNDARY_NAME": get_map_boundary_name(),
     "MAP_DEFAULT_LAYER": MAP_DEFAULT_LAYER,
-    "CARTO_BASEMAP_KEY": CARTO_BASEMAP_KEY,
-    "LOS_ELEVATION_URL": LOS_ELEVATION_URL,
-    "LOS_ELEVATION_PROXY_URL": _client_los_proxy_url(),
-    "LOS_SAMPLE_MIN": LOS_SAMPLE_MIN,
-    "LOS_SAMPLE_MAX": LOS_SAMPLE_MAX,
-    "LOS_SAMPLE_STEP_METERS": LOS_SAMPLE_STEP_METERS,
-    "LOS_CURVATURE_ENABLED": str(LOS_CURVATURE_ENABLED).lower(),
-    "LOS_CURVATURE_FACTOR": LOS_CURVATURE_FACTOR,
-    "LOS_PEAKS_MAX": LOS_PEAKS_MAX,
     "MQTT_ONLINE_SECONDS": MQTT_ONLINE_SECONDS,
     "MQTT_ONLINE_STATUS_TTL_SECONDS": MQTT_ONLINE_STATUS_TTL_SECONDS,
     "MQTT_ONLINE_INTERNAL_TTL_SECONDS": MQTT_ONLINE_INTERNAL_TTL_SECONDS,
     "MQTT_ACTIVITY_PACKETS_TTL_SECONDS": MQTT_ACTIVITY_PACKETS_TTL_SECONDS,
     "COVERAGE_API_URL": COVERAGE_API_URL,
-    "WEATHER_RADAR_ENABLED": str(WEATHER_RADAR_ENABLED).lower(),
-    "WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED": str(WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED).lower(),
-    "WEATHER_RADAR_COUNTRY_LOOKUP_URL": _client_weather_radar_lookup_url(),
-    "WEATHER_WIND_ENABLED": str(WEATHER_WIND_ENABLED).lower(),
-    "WEATHER_WIND_API_URL": WEATHER_WIND_API_URL,
-    "WEATHER_WIND_GRID_SIZE": WEATHER_WIND_GRID_SIZE,
-    "WEATHER_WIND_REFRESH_SECONDS": WEATHER_WIND_REFRESH_SECONDS,
     "UPDATE_AVAILABLE": str(bool(git_update_info.get("available"))).lower(),
     "UPDATE_LOCAL": git_update_info.get("local_short") or "",
     "UPDATE_REMOTE": git_update_info.get("remote_short") or "",
@@ -3929,20 +3519,30 @@ def manifest():
   icons = []
   icon_href = _public_if_root_relative(SITE_ICON)
   if icon_href:
-    icons = [
-      {
-        "src": icon_href,
-        "sizes": "192x192",
-        "type": "image/png",
-        "purpose": "any",
-      },
-      {
-        "src": icon_href,
-        "sizes": "512x512",
-        "type": "image/png",
-        "purpose": "any maskable",
-      },
-    ]
+    if icon_href.lower().split("?", 1)[0].endswith(".svg"):
+      icons = [
+        {
+          "src": icon_href,
+          "sizes": "any",
+          "type": "image/svg+xml",
+          "purpose": "any",
+        },
+      ]
+    else:
+      icons = [
+        {
+          "src": icon_href,
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any",
+        },
+        {
+          "src": icon_href,
+          "sizes": "512x512",
+          "type": "image/png",
+          "purpose": "any maskable",
+        },
+      ]
   short_name = SITE_TITLE if len(SITE_TITLE) <= 12 else SITE_TITLE[:12]
   start_url = public_app_path("/")
   if not start_url.endswith("/"):
@@ -4407,122 +4007,6 @@ def _peer_stats_for_device(device_id: str, limit: int) -> Dict[str, Any]:
   }
 
 
-@app.get("/los")
-def line_of_sight(
-  lat1: float,
-  lon1: float,
-  lat2: float,
-  lon2: float,
-  profile: bool = False,
-  h1: float = 0.0,
-  h2: float = 0.0,
-):
-  include_points = bool(profile)
-  start = _normalize_lat_lon(lat1, lon1)
-  end = _normalize_lat_lon(lat2, lon2)
-  if not start or not end:
-    return {"ok": False, "error": "invalid_coords"}
-
-  points = _sample_los_points(start[0], start[1], end[0], end[1])
-  elevations, error = _fetch_elevations(points)
-  if error:
-    return {"ok": False, "error": error}
-
-  distance_m = _haversine_m(start[0], start[1], end[0], end[1])
-  if distance_m <= 0:
-    return {"ok": False, "error": "zero_distance"}
-
-  safe_h1 = h1 if math.isfinite(h1) else 0.0
-  safe_h2 = h2 if math.isfinite(h2) else 0.0
-  start_elev = elevations[0] + safe_h1
-  end_elev = elevations[-1] + safe_h2
-  adjusted = _los_effective_elevations(points, elevations, distance_m)
-  adjusted[0] = start_elev
-  adjusted[-1] = end_elev
-  max_obstruction = _los_max_obstruction(points, adjusted, 0, len(points) - 1)
-  max_terrain = max(elevations)
-  blocked = max_obstruction > 0.0
-  suggestion = _find_los_suggestion(points, adjusted) if blocked else None
-  profile_samples = []
-  if distance_m > 0:
-    for idx, ((lat, lon, t), elev) in enumerate(zip(points, elevations)):
-      line_elev = start_elev + (end_elev - start_elev) * t
-      profile_samples.append(
-        [
-          round(distance_m * t, 2),
-          round(float(adjusted[idx]), 2),
-          round(float(line_elev), 2),
-        ]
-      )
-  peaks = _find_los_peaks(points, elevations, distance_m)
-
-  response = {
-    "ok": True,
-    "blocked": blocked,
-    "max_obstruction_m": round(max_obstruction, 2),
-    "distance_m": round(distance_m, 2),
-    "distance_km": round(distance_m / 1000.0, 3),
-    "distance_mi": round(distance_m / 1609.344, 3),
-    "samples": len(points),
-    "elevation_m":
-      {
-        "start": round(start_elev, 2),
-        "end": round(end_elev, 2),
-        "max_terrain": round(max_terrain, 2),
-      },
-    "provider": LOS_ELEVATION_URL,
-    "note": (
-      "LOS using SRTM90m with Earth curvature "
-      f"({'on' if LOS_CURVATURE_ENABLED else 'off'}; "
-      f"factor={LOS_CURVATURE_FACTOR:.6f}). No Fresnel clearance model."
-    ),
-    "suggested": suggestion,
-    "profile": profile_samples,
-    "peaks": peaks,
-  }
-  if include_points:
-    response["profile_points"] = [
-      [round(lat, 6),
-       round(lon, 6),
-       round(t, 4),
-       round(float(elev), 2)]
-      for (lat, lon, t), elev in zip(points, elevations)
-    ]
-  return response
-
-
-@app.get("/los/elevations")
-def los_elevations(locations: str = ""):
-  raw = [loc for loc in (locations or "").split("|") if loc.strip()]
-  if not raw:
-    return {"status": "ERROR", "error": "missing_locations"}
-  if len(raw) > 200:
-    return {"status": "ERROR", "error": "too_many_locations"}
-  points = []
-  for loc in raw:
-    parts = loc.split(",")
-    if len(parts) != 2:
-      return {"status": "ERROR", "error": "invalid_location"}
-    try:
-      lat = float(parts[0])
-      lon = float(parts[1])
-    except (ValueError, TypeError):
-      return {"status": "ERROR", "error": "invalid_coords"}
-    normalized = _normalize_lat_lon(lat, lon)
-    if not normalized:
-      return {"status": "ERROR", "error": "invalid_coords"}
-    points.append((normalized[0], normalized[1], 0.0))
-
-  elevations, error = _fetch_elevations(points)
-  if error:
-    return {"status": "ERROR", "error": error}
-  return {
-    "status": "OK",
-    "results": [{"elevation": round(float(elev), 2)} for elev in elevations],
-    "provider": LOS_ELEVATION_URL,
-  }
-
-
 @app.get("/coverage")
 async def get_coverage():
   if not COVERAGE_API_URL:
@@ -4706,32 +4190,38 @@ async def ws_endpoint(ws: WebSocket):
     clients.discard(ws)
 
 
-if APP_BASE_PATH:
-  _meshmap_fastapi_app = app
+class _AppBasePathStripMiddleware:
+  """Expose APP_BASE_PATH as the ASGI root_path so routes stay root-relative.
 
-  class _AppBasePathStripMiddleware:
-    """Strip APP_BASE_PATH from ASGI scope so routes stay root-relative."""
+  Starlette >= 0.33 expects ``scope["path"]`` to be the full request path and
+  derives the route path by removing ``root_path`` (see
+  ``starlette._utils.get_route_path``). Rewriting ``path`` itself (the old
+  behaviour) broke mounted apps such as ``/static`` under a prefix, so only
+  ``root_path`` is adjusted here. Requests outside the prefix are passed
+  through unchanged.
+  """
 
-    def __init__(self, inner_app, prefix: str):
-      self.inner_app = inner_app
-      self.prefix = prefix
+  def __init__(self, inner_app, prefix: str):
+    self.inner_app = inner_app
+    self.prefix = prefix
 
-    async def __call__(self, scope, receive, send):
-      if scope["type"] in ("http", "websocket"):
-        path = scope.get("path") or ""
-        pfx = self.prefix
-        if path == pfx or path.startswith(pfx + "/"):
-          scope = dict(scope)
-          new_path = path[len(pfx):] or "/"
-          scope["path"] = new_path
+  async def __call__(self, scope, receive, send):
+    if scope["type"] in ("http", "websocket"):
+      path = scope.get("path") or ""
+      pfx = self.prefix
+      if path == pfx or path.startswith(pfx + "/"):
+        scope = dict(scope)
+        prev = scope.get("root_path") or ""
+        if not prev.endswith(pfx):
+          scope["root_path"] = prev + pfx
+        if path == pfx:
+          scope["path"] = pfx + "/"
           raw = scope.get("raw_path")
           if isinstance(raw, (bytes, bytearray)):
-            try:
-              scope["raw_path"] = new_path.encode("utf-8")
-            except Exception:
-              pass
-          prev = scope.get("root_path") or ""
-          scope["root_path"] = prev + pfx
-      await self.inner_app(scope, receive, send)
+            scope["raw_path"] = scope["path"].encode("utf-8")
+    await self.inner_app(scope, receive, send)
 
+
+if APP_BASE_PATH:
+  _meshmap_fastapi_app = app
   app = _AppBasePathStripMiddleware(_meshmap_fastapi_app, APP_BASE_PATH)

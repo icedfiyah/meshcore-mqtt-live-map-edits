@@ -57,7 +57,6 @@ route_history_last_compact = 0.0
 node_hash_to_device: Dict[str, str] = {}
 node_hash_collisions: Set[str] = set()
 node_hash_candidates: Dict[str, List[str]] = {}
-elevation_cache: Dict[str, tuple] = {}
 device_names: Dict[str, str] = {}
 message_origins: Dict[str, Dict[str, Any]] = {}
 device_roles: Dict[str, str] = {}

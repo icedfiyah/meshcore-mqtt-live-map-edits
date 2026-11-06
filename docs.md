@@ -4,7 +4,7 @@ This document captures the state of the project and the key changes made so far,
 Current version: `1.9.8` (see `VERSIONS.md`).
 
 ## Overview
-This project renders live MeshCore traffic on a Leaflet + OpenStreetMap map. A FastAPI backend subscribes to MQTT (WSS/TLS or TCP), decodes MeshCore packets using the official [`@michaelhart/meshcore-decoder`](https://www.npmjs.com/package/@michaelhart/meshcore-decoder), and broadcasts device updates and routes over WebSockets to the frontend. Core logic is split into config/state/decoder/LOS/history modules so changes are localized. The UI includes heatmap, LOS tools, map mode toggles, and a 24-hour route history layer.
+This project renders live MeshCore traffic on a Leaflet map with OpenFreeMap vector basemaps. A FastAPI backend subscribes to MQTT (WSS/TLS or TCP), decodes MeshCore packets using the official [`@michaelhart/meshcore-decoder`](https://www.npmjs.com/package/@michaelhart/meshcore-decoder), and broadcasts device updates and routes over WebSockets to the frontend. Core logic is split into config/state/decoder/history modules so changes are localized. The UI includes heatmap, map mode toggles, and a 24-hour route history layer.
 
 ## Runtime and frontend asset maintenance
 
@@ -25,14 +25,12 @@ page's CSP restricts `worker-src` to `'self'` without `blob:` or `unsafe-eval`.
 This worker policy is not a complete script/connect-source allowlist.
 
 MapLibre requires WebGL2. Missing assets or unsupported/failed vector setup
-fall back to the light raster map without blocking the dashboard/WebSocket;
-selected-layer storage and body theme reflect that actual fallback. Keep
-OpenFreeMap, OpenMapTiles and OpenStreetMap attribution visible. Leaflet Heat
-is pinned to `0.2.0` with SRI. When renderer assets change, update the CSS SRI
+fall back to a plain background without blocking the dashboard/WebSocket;
+there are no raster tile providers. Keep OpenFreeMap, OpenMapTiles and
+OpenStreetMap attribution visible. Leaflet `1.9.4` and Leaflet Heat `0.2.0`
+are vendored same-origin with SRI. When renderer assets change, update the SRI
 and service-worker cache generation together. OpenFreeMap remains an external
-no-SLA provider. Server Pillow previews retain their separate documented
-CARTO-key / OpenStreetMap behavior; the interactive renderer is not reused
-for those images.
+no-SLA provider. `/preview.png` only redirects to the static `SITE_OG_IMAGE`.
 
 CI builds and runs the test suite in the actual production image, including
 the pinned Node decoder. Local amd64 verification does not prove arm64
@@ -47,9 +45,7 @@ runtime or hosted publication; verify those independently before release.
 - `backend/config.py`: environment/config constants (shared across backend modules).
 - `backend/state.py`: shared runtime state (devices/routes/history) + dataclasses.
 - `backend/decoder.py`: payload parsing, official decoder integration, route helpers.
-- `backend/los.py`: LOS math + elevation sampling.
 - `backend/history.py`: route history persistence + pruning.
-- `backend/weather.py`: weather radar country-bounds lookup router.
 - `backend/static/index.html`: HTML shell + template placeholders.
 - `backend/static/styles.css`: UI styles.
 - `backend/static/app.js`: Leaflet UI, markers, legends, routes, tools.
@@ -92,8 +88,6 @@ runtime or hosted publication; verify those independently before release.
 - `MQTT_ACTIVITY_PACKETS_TTL_SECONDS` controls feed/activity TTL from `/packets`.
 - `MQTT_STATUS_OFFLINE_VALUES` forces offline when recent status payloads report those values.
 - `MQTT_ONLINE_TOPIC_SUFFIXES` remains for legacy compatibility; primary connected logic uses status/internal TTLs.
-- `LOS_CURVATURE_ENABLED` controls whether LOS includes Earth curvature; default is `true`.
-- `LOS_CURVATURE_FACTOR` controls the LOS effective Earth radius multiplier; default is `1.333333`.
 - `GIT_CHECK_ENABLED`, `GIT_CHECK_FETCH`, `GIT_CHECK_PATH` enable update checks.
 - `GIT_CHECK_INTERVAL_SECONDS` controls how often the server re-checks for updates.
 - `ROUTE_MAX_HOP_DISTANCE` prunes hops longer than the configured km distance.
@@ -110,14 +104,6 @@ runtime or hosted publication; verify those independently before release.
 - `BACKUP_INTERVAL_SECONDS` controls backup frequency; default `43200` seconds (12 hours).
 - `BACKUP_DIR` controls where backup archives are written; default `/backup`.
 - `BACKUP_RETENTION_DAYS` controls archive pruning; set `0` to disable retention pruning.
-- Weather overlay settings:
-  - `WEATHER_RADAR_ENABLED`: master switch for radar layer support.
-  - `WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED`: set `true` to clip radar tiles to resolved country bounds.
-  - `WEATHER_RADAR_COUNTRY_LOOKUP_URL`: keep `/weather/radar/country-bounds` unless using a custom endpoint.
-  - `WEATHER_WIND_ENABLED`: set `false` to disable wind in the Weather panel.
-  - `WEATHER_WIND_API_URL`: wind data endpoint (Open-Meteo format by default).
-  - `WEATHER_WIND_GRID_SIZE`: wind sample density per map view (`1`-`5`).
-  - `WEATHER_WIND_REFRESH_SECONDS`: wind refresh interval in seconds (minimum `30`).
 - Turnstile protection is gated by `PROD_MODE=true` and controlled by:
   `TURNSTILE_ENABLED`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`,
   `TURNSTILE_API_URL`, and `TURNSTILE_TOKEN_TTL_SECONDS`.
@@ -145,8 +131,8 @@ runtime or hosted publication; verify those independently before release.
 - Ambiguous 1-byte prefixes are now handled conservatively: if multiple nodes share the same first byte, the map skips broad closest/time-based guesses and only keeps the hop when there is stronger evidence such as a unique match or neighbor/manual adjacency.
 
 ## Frontend UI
-- Header includes a GitHub link icon and HUD summary (stats, feed note).
-- Base map toggle: Light/Dark/Topo; persisted to localStorage.
+- Header includes the HUD summary (stats, feed note); the HUD footer links to `SOURCE_URL` (GPL-3.0 source offer).
+- Base map toggle: Dark/Light (OpenFreeMap `dark` / `positron` vector styles); persisted to localStorage, invalid values fall back to `dark`.
 - Dark map also darkens node popups for readability.
 - Node popups do not auto-pan; dragging the map won’t snap back to keep a popup in view.
 - Node popups now let users click the short key under the node name to copy the full public key, copy a direct `node=` map link, and can optionally expose a MeshCore-compatible contact QR modal that shows the node name plus a clickable truncated key that still copies the full public key.
@@ -154,10 +140,8 @@ runtime or hosted publication; verify those independently before release.
 - HUD is capped to `90vh` and scrolls to avoid running off-screen.
 - Map start position is configurable with `MAP_START_LAT`, `MAP_START_LON`, `MAP_START_ZOOM`.
 - Radius filter: `MAP_RADIUS_KM=0` disables filtering; `.env.example` uses `241.4` km (150mi). `MAP_RADIUS_SHOW=true` draws a debug circle.
-- Default base layer can be set with `MAP_DEFAULT_LAYER` (`light`, `dark`, `topo`, or `satellite`; localStorage overrides).
-- The `satellite` layer uses open Sentinel-2 cloudless imagery from EOX with OpenStreetMap/CARTO labels and borders overlaid.
-- The `dark` layer uses the keyless OpenFreeMap Dark vector style through MapLibre GL Leaflet and displays the required OpenFreeMap, OpenMapTiles, and OpenStreetMap attribution.
-- `CARTO_BASEMAP_KEY` is optional and is used only for CARTO satellite labels and server-generated dark social preview tiles. Without it, satellite imagery remains available without labels and dark previews fall back to OpenStreetMap.
+- Default base layer can be set with `MAP_DEFAULT_LAYER` (`dark` or `light`; localStorage overrides).
+- Both layers use keyless OpenFreeMap vector styles through MapLibre GL Leaflet and display the required OpenFreeMap, OpenMapTiles, and OpenStreetMap attribution.
 - Units toggle (km/mi) is site-wide; default from `DISTANCE_UNITS` and stored in localStorage.
 - Heat toggle defaults from `HEAT_DEFAULT_ON` on first load before any browser-local override exists.
 - Node size slider defaults from `NODE_MARKER_RADIUS` and persists in localStorage.
@@ -181,24 +165,15 @@ runtime or hosted publication; verify those independently before release.
 - MeshMapper coverage is synced server-side into a local cache file and served from that file to users; it also uses a cooldown after HTTP 429 rate-limit responses.
 - MeshMapper viewport refresh now reuses the cached expanded rectangles and only attaches or detaches visible ones, which avoids the old lag from rebuilding the full visible coverage set on every map move.
 - Coverage responses are filtered by `COVERAGE_MAX_AGE_DAYS` before they reach the map; default is `30` days, while MeshMapper can still keep the full downloaded dataset in its local cache file.
-- Weather is a right-side tool panel with per-layer toggles:
-  - Radar toggle controls RainViewer tile layer visibility.
-  - Wind toggle controls arrow sampling/rendering and refresh polling.
-  - If both radar and wind are disabled by env (`WEATHER_RADAR_ENABLED=false` and `WEATHER_WIND_ENABLED=false`), the Weather button is hidden.
 - Trail text in the HUD is only shown when `TRAIL_LEN > 0`; `TRAIL_LEN=0` disables trails entirely. `TRAIL_MAX_SEGMENT_KM` splits visual trails across large coordinate jumps so moved repeaters do not draw stale cross-map lines.
 - Hide Nodes toggle hides markers, trails, heat, routes, and history layers.
 - Heat toggle can hide the heatmap; it defaults on and the button turns green when heat is off.
-- HUD logo uses `SITE_ICON`; if unset or broken it falls back to a small “Map” badge so the toggle still works.
 - History line weight was reduced for improved readability.
-- Propagation overlay keeps heat/routes/trails/markers above it after render; the panel lives on the right and retains the last render until you generate a new one.
-- Propagation origin markers can be removed individually by clicking them.
-- Propagation now supports adjustable TX antenna gain (dBi), and defaults Rx AGL to 1m.
 - Heatmap includes all route payload types (adverts are no longer skipped).
 - MQTT online status shows as a green marker outline and popup status; connected state is derived from `/status` and `/internal` timestamps, while `/packets` is feed activity only. Role detection is now conservative and only trusts explicit role fields and numeric role codes.
 - Devices that remain MQTT-online keep their last known map position until MQTT presence expires, even if fresh location packets stop arriving.
 - `MQTT_ONLINE_FORCE_NAMES` can force named nodes to show as MQTT online regardless of last seen.
 - PWA install support is enabled via `/manifest.webmanifest` and a service worker at `/sw.js`.
-- Preview image (`/preview.png`) renders in-bounds device dots for shared links.
 - Route lines prefer known neighbor pairs (including overrides) before falling back to closest-hop selection.
 - Clicking the HUD logo hides/shows the left panel while tool panels stay open.
 - Share button copies a URL with the current view + toggles (including HUD visibility).
@@ -206,23 +181,8 @@ runtime or hosted publication; verify those independently before release.
 - Optional custom HUD link appears when `CUSTOM_LINK_URL` is set.
 - Update banner shows when `GIT_CHECK_ENABLED=true` and the repo is behind; users can dismiss it per remote SHA.
 - Update banner dismissal relies on `.hud-update[hidden]` to ensure the banner actually disappears.
-- URL params override stored settings: `lat`, `lon`/`lng`/`long`, `zoom`, `layer`, `history`, `heat`, `coverage`, `weather`, `weather_radar`, `weather_wind`, `labels`, `nodes`, `legend`, `menu`, `units`, `history_filter`, `route_bytes`, `history_bytes`, and direct node focus via `node`/`repeater`/`device_id`.
 - Service worker uses `no-store` for navigation requests so env-driven UI toggles (like the radius ring) update without clearing site data.
 - HUD scrollbars are custom styled in Chromium for a cleaner look.
-
-## LOS (Line of Sight) Tool
-- LOS elevations are fetched via `/los/elevations` (proxy for `LOS_ELEVATION_URL`) and the LOS/relay/profile math runs client-side for realtime updates (fallbacks still use `/los`).
-- UI draws an LOS line (green clear / red blocked), renders an elevation profile, and marks peaks.
-- LOS now applies Earth curvature by default in both the frontend realtime path and the backend `/los` fallback, using an effective Earth radius factor of `1.333333` unless overridden by env.
-- When blocked, a relay suggestion marker (amber/green) highlights a potential mid-point.
-- Peak markers show coords + elevation and copy coords on click.
-- Hovering the profile or the LOS line syncs a cursor tooltip on the profile.
-- Hovering the LOS profile also tracks a cursor on the map and highlights nearby peaks.
-- LOS legend items (clear/blocked/peaks/relay) are hidden unless the LOS tool is active.
-- Shift+click nodes (or long‑press on mobile) or click the map repeatedly to add LOS pins and build a chained path segment-by-segment.
-- The LOS panel also supports direct latitude/longitude pin entry, including a per-pin height field for above-ground-level entry at that pin.
-- Drag endpoints to update LOS in realtime. Click a point marker to select it, then click the map to reposition that specific point, or move it from the LOS coordinate editor. LOS heights are stored per pin, not as one shared A/B pair.
-- LOS and Propagation stay as separate right-side tools on the same map so path clearance and RF coverage can be planned side by side without merging their controls.
 
 ## Device Names + Roles
 - Names come from advert payloads or status messages when available.
@@ -258,7 +218,6 @@ If routes aren’t visible:
 - Unknown markers were made more visible (larger, higher contrast gray).
 - Zoom control moved to bottom-right.
 - Route lines are thicker/bolder for large screens.
-- LOS + Propagation panels appear on the right; on mobile they stack to avoid overlap.
 
 ## Persistence
 - Devices, trails, names, and roles are saved to `data/state.json`.
@@ -284,12 +243,9 @@ If routes aren’t visible:
 - UI: route legend, role legend, and improved marker styles.
 - Roles now apply to advertised pubkey, not receiver.
 - Docker restarts are required after file changes (always run `docker compose up -d --build`).
-- LOS elevations are proxied via `/los/elevations` and LOS/relay computations run client-side (with `/los` fallback).
 - MQTT online presence now separates connected state (`/status` + `/internal`) from feed activity (`/packets`) with dedicated TTL envs.
 - Filters out `0,0` GPS points from devices, trails, and routes (including string values).
 - Added 24h route history storage + history toggle with volume-based colors.
-- Weather backend logic moved out of `app.py` into `backend/weather.py` and mounted as a router.
-- Weather tool now uses its own right-side panel with separate Radar and Wind layer toggles.
 - Hide nodes now hides heat/routes/history along with markers/trails.
 - Fixed MQTT disconnect callback signature so broker drops don’t crash the MQTT loop.
 - Route hash collisions prefer known neighbors (or overrides) before closest-hop selection; long path lists are skipped (`ROUTE_PATH_MAX_LEN`).
@@ -300,7 +256,6 @@ If routes aren’t visible:
 - Node marker size can be tuned via `NODE_MARKER_RADIUS` (users can override locally).
 - Heat visibility can default on or off via `HEAT_DEFAULT_ON` before local browser state takes over.
 - Units toggle defaults from `DISTANCE_UNITS` and persists in localStorage.
-- Mobile LOS selection supports long-press on nodes.
 - History tool visibility no longer persists (always off unless `history=on` in the URL).
 - WebSocket auth accepts `?auth=<turnstile_token>` for Turnstile-gated sessions.
 - Protected API routes keep requiring `PROD_TOKEN` even when Turnstile auth is active.
@@ -308,6 +263,5 @@ If routes aren’t visible:
 - `/api/nodes` now applies `updated_since` automatically (use `mode=full` to force full snapshots).
 - Route IDs are observer-aware (`message_hash:receiver_id`) so multi-observer receptions do not overwrite each other.
 - `ROUTE_INFRA_ONLY` direct-route checks now allow rendering when at least one endpoint is infrastructure.
-- Propagation range math now uses a user-set TX antenna gain field; Rx AGL default lowered to 1m (credit: C2D).
 - Device staleness now supports a dual TTL model using both `DEVICE_TTL_HOURS` and `PATH_TTL_SECONDS` together.
 - Multibyte repeater-prefix support (1/2/3-byte) is in place and expected to work, but is not fully field-tested yet.

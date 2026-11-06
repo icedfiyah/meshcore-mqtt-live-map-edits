@@ -195,14 +195,16 @@ def public_app_path(path: str) -> str:
   return APP_BASE_PATH + path
 
 
-SITE_TITLE = os.getenv("SITE_TITLE", "MeshCore Live Map")
+SITE_TITLE = os.getenv("SITE_TITLE", "Meshcore MQTT Live Map")
 SITE_DESCRIPTION = os.getenv(
   "SITE_DESCRIPTION",
   "Live view of MeshCore nodes, message routes, and advert paths.",
 )
 SITE_OG_IMAGE = os.getenv("SITE_OG_IMAGE", "")
 SITE_URL = os.getenv("SITE_URL", "/")
-SITE_ICON = os.getenv("SITE_ICON", "/static/logo.png")
+SITE_ICON = os.getenv("SITE_ICON", "/static/icon.svg")
+# Link to this fork's source code (GPL-3.0 requires offering the source).
+SOURCE_URL = os.getenv("SOURCE_URL", "https://example.com/CHANGE-ME-source").strip()
 SITE_FEED_NOTE = os.getenv("SITE_FEED_NOTE", "")
 CUSTOM_LINK_URL = os.getenv("CUSTOM_LINK_URL", "").strip()
 PACKET_ANALYZER_URL = os.getenv("PACKET_ANALYZER_URL", "").strip()
@@ -247,8 +249,9 @@ try:
   MAP_START_ZOOM = float(os.getenv("MAP_START_ZOOM", "10"))
 except ValueError:
   MAP_START_ZOOM = 10
-MAP_DEFAULT_LAYER = os.getenv("MAP_DEFAULT_LAYER", "light").strip().lower()
-CARTO_BASEMAP_KEY = os.getenv("CARTO_BASEMAP_KEY", "").strip()
+MAP_DEFAULT_LAYER = os.getenv("MAP_DEFAULT_LAYER", "dark").strip().lower()
+if MAP_DEFAULT_LAYER not in ("dark", "light"):
+  MAP_DEFAULT_LAYER = "dark"
 try:
   MAP_RADIUS_KM = float(os.getenv("MAP_RADIUS_KM", "0"))
 except ValueError:
@@ -267,27 +270,6 @@ MAP_BOUNDARY_SHOW = os.getenv("MAP_BOUNDARY_SHOW", "false").lower() == "true"
 PROD_MODE = os.getenv("PROD_MODE", "false").lower() == "true"
 PROD_TOKEN = os.getenv("PROD_TOKEN", "").strip()
 
-LOS_ELEVATION_URL = os.getenv(
-  "LOS_ELEVATION_URL", "https://api.opentopodata.org/v1/srtm90m"
-)
-LOS_ELEVATION_PROXY_URL = os.getenv(
-  "LOS_ELEVATION_PROXY_URL", "/los/elevations"
-).strip()
-LOS_SAMPLE_MIN = int(os.getenv("LOS_SAMPLE_MIN", "10"))
-LOS_SAMPLE_MAX = int(os.getenv("LOS_SAMPLE_MAX", "80"))
-LOS_SAMPLE_STEP_METERS = int(os.getenv("LOS_SAMPLE_STEP_METERS", "250"))
-ELEVATION_CACHE_TTL = int(os.getenv("ELEVATION_CACHE_TTL", "21600"))
-LOS_CURVATURE_ENABLED = (
-  os.getenv("LOS_CURVATURE_ENABLED", "true").lower() == "true"
-)
-try:
-  LOS_CURVATURE_FACTOR = float(os.getenv("LOS_CURVATURE_FACTOR", "1.333333"))
-except ValueError:
-  LOS_CURVATURE_FACTOR = 1.333333
-if LOS_CURVATURE_FACTOR <= 0:
-  LOS_CURVATURE_FACTOR = 1.333333
-LOS_PEAKS_MAX = int(os.getenv("LOS_PEAKS_MAX", "4"))
-
 COVERAGE_API_URL = os.getenv("COVERAGE_API_URL", "").strip()
 COVERAGE_API_KEY = os.getenv("COVERAGE_API_KEY", "").strip()
 COVERAGE_API_KEYS = tuple(
@@ -305,37 +287,14 @@ COVERAGE_CACHE_FILE = os.getenv(
 COVERAGE_SYNC_INTERVAL_SECONDS = int(
   os.getenv("COVERAGE_SYNC_INTERVAL_SECONDS", "3600")
 )
+# Weather overlays (radar/wind) were removed from this fork. The two flags are
+# retained for compatibility with existing .env files and default to false.
 WEATHER_RADAR_ENABLED = (
-  os.getenv("WEATHER_RADAR_ENABLED", "true").lower() == "true"
+  os.getenv("WEATHER_RADAR_ENABLED", "false").lower() == "true"
 )
-WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED = (
-  os.getenv("WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED", "false").lower() == "true"
-)
-WEATHER_RADAR_COUNTRY_LOOKUP_URL = os.getenv(
-  "WEATHER_RADAR_COUNTRY_LOOKUP_URL", "/weather/radar/country-bounds"
-).strip()
 WEATHER_WIND_ENABLED = (
-  os.getenv("WEATHER_WIND_ENABLED", "true").lower() == "true"
+  os.getenv("WEATHER_WIND_ENABLED", "false").lower() == "true"
 )
-WEATHER_WIND_API_URL = os.getenv(
-  "WEATHER_WIND_API_URL", "https://api.open-meteo.com/v1/forecast"
-).strip()
-try:
-  WEATHER_WIND_GRID_SIZE = int(os.getenv("WEATHER_WIND_GRID_SIZE", "3"))
-except ValueError:
-  WEATHER_WIND_GRID_SIZE = 3
-if WEATHER_WIND_GRID_SIZE < 1:
-  WEATHER_WIND_GRID_SIZE = 1
-if WEATHER_WIND_GRID_SIZE > 5:
-  WEATHER_WIND_GRID_SIZE = 5
-try:
-  WEATHER_WIND_REFRESH_SECONDS = int(
-    os.getenv("WEATHER_WIND_REFRESH_SECONDS", "180")
-  )
-except ValueError:
-  WEATHER_WIND_REFRESH_SECONDS = 180
-if WEATHER_WIND_REFRESH_SECONDS < 30:
-  WEATHER_WIND_REFRESH_SECONDS = 30
 
 TURNSTILE_ENABLED_RAW = os.getenv("TURNSTILE_ENABLED", "false").lower() == "true"
 # Turnstile protection is only allowed when PROD_MODE is enabled.

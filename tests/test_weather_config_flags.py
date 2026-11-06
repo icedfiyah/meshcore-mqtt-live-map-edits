@@ -3,10 +3,8 @@ from fastapi.testclient import TestClient
 import app
 
 
-def test_root_injects_weather_flags(monkeypatch):
+def test_root_has_no_weather_or_los_attributes(monkeypatch):
   monkeypatch.setattr(app, "TURNSTILE_ENABLED", False)
-  monkeypatch.setattr(app, "WEATHER_RADAR_ENABLED", False)
-  monkeypatch.setattr(app, "WEATHER_WIND_ENABLED", True)
   monkeypatch.setattr(app, "APP_VERSION", "9.9.9-test")
 
   client = TestClient(app.app)
@@ -14,21 +12,13 @@ def test_root_injects_weather_flags(monkeypatch):
 
   assert response.status_code == 200
   assert 'data-app-version="9.9.9-test"' in response.text
-  assert 'data-weather-radar-enabled="false"' in response.text
-  assert 'data-weather-wind-enabled="true"' in response.text
-
-
-def test_root_injects_both_weather_flags_off(monkeypatch):
-  monkeypatch.setattr(app, "TURNSTILE_ENABLED", False)
-  monkeypatch.setattr(app, "WEATHER_RADAR_ENABLED", False)
-  monkeypatch.setattr(app, "WEATHER_WIND_ENABLED", False)
-
-  client = TestClient(app.app)
-  response = client.get("/")
-
-  assert response.status_code == 200
-  assert 'data-weather-radar-enabled="false"' in response.text
-  assert 'data-weather-wind-enabled="false"' in response.text
+  assert "data-weather-" not in response.text
+  assert "data-los-" not in response.text
+  assert "carto-basemap-key" not in response.text
+  assert 'id="los-panel"' not in response.text
+  assert 'id="weather-panel"' not in response.text
+  assert 'id="prop-panel"' not in response.text
+  assert 'id="source-link"' in response.text
 
 
 def test_root_injects_boundary_config(monkeypatch):
@@ -57,19 +47,6 @@ def test_root_injects_qr_code_button_flag(monkeypatch):
 
   assert response.status_code == 200
   assert 'data-qr-code-button-enabled="true"' in response.text
-
-
-def test_root_injects_los_curvature_defaults(monkeypatch):
-  monkeypatch.setattr(app, "TURNSTILE_ENABLED", False)
-  monkeypatch.setattr(app, "LOS_CURVATURE_ENABLED", True)
-  monkeypatch.setattr(app, "LOS_CURVATURE_FACTOR", 1.333333)
-
-  client = TestClient(app.app)
-  response = client.get("/")
-
-  assert response.status_code == 200
-  assert 'data-los-curvature-enabled="true"' in response.text
-  assert 'data-los-curvature-factor="1.333333"' in response.text
 
 
 def test_map_injects_route_history_and_peer_defaults(monkeypatch):
@@ -104,17 +81,28 @@ def test_map_injects_route_history_and_peer_defaults(monkeypatch):
   assert "{{PEERS_DEFAULT_OPEN}}" not in response.text
 
 
-def test_map_coordinate_embed_includes_preview_image(monkeypatch):
+def test_map_coordinate_embed_uses_static_og_image_only(monkeypatch):
   monkeypatch.setattr(app, "TURNSTILE_ENABLED", False)
+  monkeypatch.setattr(app, "SITE_OG_IMAGE", "https://cdn.example/og.png")
 
   client = TestClient(app.app)
   response = client.get("/map?lat=42.13306&lon=-71.67163")
 
   assert response.status_code == 200
-  assert 'property="og:image"' in response.text
-  assert '/preview.png?lat=42.13306&amp;lon=-71.67163' in response.text
-  assert 'name="twitter:image"' in response.text
+  assert 'property="og:image" content="https://cdn.example/og.png"' in response.text
+  assert 'name="twitter:image" content="https://cdn.example/og.png"' in response.text
+  assert "preview.png" not in response.text
   assert (
     'property="og:url" content="http://testserver/map?lat=42.13306'
     '&amp;lon=-71.67163"'
   ) in response.text
+
+
+def test_preview_png_redirects_to_static_image_or_404(monkeypatch):
+  client = TestClient(app.app)
+  monkeypatch.setattr(app, "SITE_OG_IMAGE", "")
+  assert client.get("/preview.png").status_code == 404
+  monkeypatch.setattr(app, "SITE_OG_IMAGE", "https://cdn.example/og.png")
+  response = client.get("/preview.png", follow_redirects=False)
+  assert response.status_code == 302
+  assert response.headers["location"] == "https://cdn.example/og.png"

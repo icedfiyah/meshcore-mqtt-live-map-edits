@@ -16,7 +16,7 @@ Thanks for helping improve the MeshCore Live Map. This repo is intentionally lig
 - `backend/app.py` handles MQTT ingest, decoding, routing, and API endpoints.
 - `backend/static/index.html` is the HTML shell + template placeholders.
 - `backend/static/styles.css` holds all UI styling.
-- `backend/static/app.js` contains all client-side map logic (Leaflet, routes, LOS, propagation).
+- `backend/static/app.js` contains all client-side map logic (Leaflet, routes, history, peers).
 - `backend/static/sw.js` is the PWA service worker.
 
 ## Coding Style
@@ -28,21 +28,15 @@ Thanks for helping improve the MeshCore Live Map. This repo is intentionally lig
 - `docker compose up -d --build` after any change.
 - `pip install -r requirements-dev.txt && pytest -q` for backend unit tests.
 - `curl -s http://localhost:8080/stats` to confirm MQTT ingest.
-- Open the map: confirm markers, LOS, and propagation behave as expected.
-- Propagation check: verify TX antenna gain (dBi) changes range, and default Rx AGL is 1m.
+- Open the map: confirm markers, routes, history and peers behave as expected.
 - Turnstile only activates when `PROD_MODE=true`; if you are testing Turnstile,
   set `PROD_MODE=true` plus the `TURNSTILE_*` env vars.
 - If `COVERAGE_API_URL` is blank, confirm the Coverage button is hidden.
 - If `MAP_BOUNDARY_MODE=polygon`, verify `MAP_BOUNDARY_FILE` exists and that the polygon overlay/filter matches the file contents.
-- Weather panel check:
-  - `WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED=true` keeps radar clipped to country bounds.
-  - `WEATHER_WIND_ENABLED=false` disables wind and should mark wind as unavailable in the Weather panel.
-  - If wind is enabled, validate `WEATHER_WIND_GRID_SIZE` (`1`-`5`) and `WEATHER_WIND_REFRESH_SECONDS` (>= `30`) behavior.
 - Note: coordinates at `0,0` (even as strings) are filtered and won’t render.
 - Radius filter: `MAP_RADIUS_KM=0` disables filtering; `.env.example` uses 241.4 km (150mi).
 - `CUSTOM_LINK_URL` shows an extra HUD link when set; leave blank to hide.
 - Update banner uses `GIT_CHECK_ENABLED` + `GIT_CHECK_PATH` to compare local vs upstream.
-- Preview check: `/preview.png?lat=...&lon=...&zoom=...` shows tiles + device dots.
 - Routing controls: `ROUTE_MAX_HOP_DISTANCE` (km) and `ROUTE_INFRA_ONLY` (repeaters/rooms only).
 - Verify Show Hops prefix display stays plain hex (`AB`, `ABCD`, or `ABCDEF`) and matches route direction.
 - Staleness controls: `DEVICE_TTL_HOURS` (device/adverts) and `PATH_TTL_SECONDS` (path activity).
@@ -66,4 +60,4 @@ When adding UI controls:
 - Keep payloads backward-compatible when possible.
 
 ## Commits
-Use short, imperative commit messages, e.g. `Add LOS panel toggle`.
+Use short, imperative commit messages, e.g. `Add peers panel toggle`.

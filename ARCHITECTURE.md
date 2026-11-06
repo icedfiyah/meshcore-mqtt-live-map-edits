@@ -36,8 +36,6 @@ mesh-live-map-dev/
 │   ├── state.py            # Shared in-memory state (devices, routes, etc.)
 │   ├── decoder.py          # Payload parsing, MeshCore decoding
 │   ├── history.py          # Route history persistence (24h rolling window)
-│   ├── los.py              # Line-of-sight calculations, elevation API
-│   ├── weather.py          # Weather radar country-bounds router
 │   ├── turnstile.py        # Cloudflare Turnstile verification + tokens
 │   ├── routes/             # HTTP/WebSocket route modules
 │   │   ├── api.py           # API endpoints
@@ -58,7 +56,6 @@ mesh-live-map-dev/
 │   │   ├── landing.html    # Turnstile landing/verification page
 │   │   ├── turnstile.js    # Turnstile widget + verification flow
 │   │   ├── sw.js           # PWA service worker
-│   │   └── logo.png        # Site branding
 │   ├── Dockerfile          # Container build
 │   └── requirements.txt    # Python dependencies
 ├── data/                   # Runtime state (created at first run)
@@ -121,12 +118,8 @@ Loads all settings from environment variables with sensible defaults.
 - Route handling (`ROUTE_TTL_SECONDS`, `ROUTE_HISTORY_HOURS`)
 - Turnstile protection (`TURNSTILE_*`, gated by `PROD_MODE=true`)
 - Map display (`MAP_START_LAT`, `MAP_START_LON`, `MAP_RADIUS_KM`,
-  `WEATHER_RADAR_COUNTRY_BOUNDS_ENABLED`, `WEATHER_RADAR_COUNTRY_LOOKUP_URL`).
-  `WEATHER_RADAR_COUNTRY_LOOKUP_URL` defaults to `/weather/radar/country-bounds` and is an HTTP route path (not a filesystem path).
 - Boundary mode (`MAP_BOUNDARY_MODE`, `MAP_BOUNDARY_FILE`,
   `MAP_BOUNDARY_SHOW`) adds optional polygon filtering; radius mode remains the default.
-- Weather overlays (`WEATHER_WIND_ENABLED`, `WEATHER_WIND_API_URL`,
-  `WEATHER_WIND_GRID_SIZE`, `WEATHER_WIND_REFRESH_SECONDS`)
 - Site metadata (`SITE_TITLE`, `SITE_DESCRIPTION`)
 
 ### state.py (Shared State)
@@ -161,25 +154,6 @@ Maintains a 24-hour rolling window of route segments:
 - Compacted periodically to remove old entries
 - Aggregated into edges with counts for visualization
 
-### los.py (Line of Sight)
-
-Calculates terrain-based line of sight:
-- Fetches elevation data from OpenTopoData API
-- Samples points along the path
-- Finds peaks and obstructions
-- Suggests relay points when blocked
-
-### weather.py (Weather API)
-
-Owns weather-specific backend routes:
-- `GET /weather/radar/country-bounds`
-- Resolves country by lat/lon and returns a bounding box used to clip radar tiles.
-- Uses in-memory caching keyed by rounded map center to reduce upstream lookups.
-
----
-
-## Frontend Components
-
 ### app.js (Main JavaScript)
 
 A single file containing all client-side logic:
@@ -191,9 +165,7 @@ A single file containing all client-side logic:
 | Marker management | 200-400 | Node markers, styles by role |
 | Route rendering | 400-600 | Live routes with animations |
 | History tool | 600-800 | 24h route history visualization |
-| LOS tool | 800-1100 | Line of sight with elevation profile + coordinate pin entry |
 | Peers tool | 1100-1300 | Inbound/outbound neighbor analysis |
-| Propagation tool | 1300-2000 | RF coverage simulation (includes TX antenna gain + Rx AGL controls) |
 | WebSocket | 2000-2200 | Real-time updates |
 | UI handlers | 2200-4100 | Toggle buttons, sliders, search |
 
@@ -206,8 +178,7 @@ Route rendering notes:
 CSS organized by component:
 - `.hud` - Main control panel
 - `.legend` - Map legend
-- `.los-panel`, `.history-panel`, `.peers-panel` - Tool panels
-- `.prop-panel` - Propagation settings
+- `.history-panel`, `.peers-panel` - Tool panels
 - Polygon boundary overlays are rendered client-side from backend-injected JSON when polygon mode is active.
 - Responsive breakpoints at 900px
 
@@ -290,9 +261,7 @@ WebSocket broadcast to all clients
 | `GET /stats` | No | Message counters |
 | `GET /api/nodes` | Token | Node list (flat or nested) |
 | `GET /peers/{id}` | Token | Inbound/outbound neighbors |
-| `GET /preview.png` | No | Social preview image (map tiles + device dots) |
-| `GET /los` | No | Line of sight calculation |
-| `GET /weather/radar/country-bounds` | Token | Resolve country bounds for radar clipping |
+| `GET /preview.png` | No | Redirects to static `SITE_OG_IMAGE` (404 if unset) |
 | `GET /coverage` | Token | Coverage data proxy |
 | `GET /debug/last` | Dev only | Recent MQTT messages |
 | `GET /debug/status` | Dev only | Status messages |
@@ -354,11 +323,10 @@ Balances disk usage with useful analytics. Configurable via `ROUTE_HISTORY_HOURS
 - [ ] Split `app.py` into route modules (`routes/api.py`, `routes/websocket.py`)
 - [ ] Extract MQTT handling to `services/mqtt.py`
 - [ ] Extract broadcaster/reaper to `services/`
-- [ ] Add pytest tests for decoder, history, LOS
 
 ### Frontend
 - [ ] Split `app.js` into ES modules
-- [ ] Extract tool logic (LOS, history, peers, propagation)
+- [ ] Extract tool logic (history, peers)
 - [ ] Create `storage.js` helper for localStorage patterns
 - [ ] Consider TypeScript migration (start with JSDoc types)
 
