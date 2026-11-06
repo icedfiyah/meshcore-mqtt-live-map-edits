@@ -56,6 +56,7 @@
   data-coverage-api-url="{{COVERAGE_API_URL}}" data-custom-link-url="{{CUSTOM_LINK_URL}}"
   data-packet-analyzer-url="{{PACKET_ANALYZER_URL}}"
   data-corescope-url="{{CORESCOPE_URL}}"
+  data-tropo-base-url="{{TROPO_BASE_URL}}"
   data-qr-code-button-enabled="{{QR_CODE_BUTTON_ENABLED}}"
   data-app-version="{{APP_VERSION}}"
   data-update-available="{{UPDATE_AVAILABLE}}" data-update-local="{{UPDATE_LOCAL}}"
@@ -132,6 +133,23 @@
       <button class="map-toggle" id="history-toggle" type="button">History tool</button>
       <button class="map-toggle" id="peers-toggle" type="button">Peers tool</button>
       <button class="map-toggle" id="hops-toggle" type="button">Show hops</button>
+      <button class="map-toggle" id="tropo-toggle" type="button">Tropo</button>
+      <div class="tropo-panel" id="tropo-panel" hidden>
+        <select class="tropo-select" id="tropo-product" aria-label="Tropo product"></select>
+        <label class="tropo-row">
+          <span class="tropo-label">Opacity</span>
+          <input class="tropo-range" id="tropo-opacity" type="range" min="10" max="100" step="5" value="70" />
+          <span class="tropo-value" id="tropo-opacity-value"></span>
+        </label>
+        <label class="tropo-row">
+          <span class="tropo-label">Forecast</span>
+          <input class="tropo-range" id="tropo-step" type="range" min="0" max="0" step="1" value="0" />
+        </label>
+        <div class="tropo-time" id="tropo-time"></div>
+        <button class="map-toggle tropo-legend-toggle" id="tropo-legend-toggle" type="button">Legend</button>
+        <div class="tropo-legend" id="tropo-legend" hidden></div>
+        <div class="tropo-status" id="tropo-status"></div>
+      </div>
       <div class="route-byte-control" hidden style="display:none">
         <span class="route-byte-label">Path bytes</span>
         <details class="byte-dropdown" id="route-byte-filter">

@@ -4331,6 +4331,240 @@ if (hopsToggle) {
   });
 }
 
+// ---- Tropo forecast overlay ----
+const TROPO_PRODUCTS = [
+  ['index', 'Tropo Index'],
+  ['likelihood', 'Ducting Likelihood'],
+  ['strength', 'Duct Strength'],
+  ['base', 'Duct Base Height'],
+  ['type', 'Duct Type'],
+  ['duration', 'Duct Duration'],
+];
+const tropoRoot = (cleanConfigValue(config.tropoBaseUrl) || '/').replace(/\/*$/, '/');
+const tropoToggle = document.getElementById('tropo-toggle');
+const tropoPanel = document.getElementById('tropo-panel');
+const tropoProductSel = document.getElementById('tropo-product');
+const tropoOpacity = document.getElementById('tropo-opacity');
+const tropoOpacityValue = document.getElementById('tropo-opacity-value');
+const tropoStepInput = document.getElementById('tropo-step');
+const tropoTimeEl = document.getElementById('tropo-time');
+const tropoLegendBtn = document.getElementById('tropo-legend-toggle');
+const tropoLegendEl = document.getElementById('tropo-legend');
+const tropoStatusEl = document.getElementById('tropo-status');
+let tropoMan = null;
+let tropoOverlay = null;
+let tropoEnabled = false;
+let tropoLoading = null;
+let tropoProduct = localStorage.getItem('meshmapTropoProduct') || 'index';
+let tropoStep = 0;
+let tropoOp = Number(localStorage.getItem('meshmapTropoOpacity'));
+if (!(tropoOp >= 10 && tropoOp <= 100)) tropoOp = 70;
+let tropoLegendOpen = false;
+
+if (!map.getPane('tropoPane')) {
+  const pane = map.createPane('tropoPane');
+  pane.style.zIndex = '260';
+  pane.style.pointerEvents = 'none';
+}
+
+function tropoName(id) {
+  const hit = TROPO_PRODUCTS.find((p) => p[0] === id);
+  if (hit) return hit[1];
+  const l = tropoMan && tropoMan.layers.find((x) => x.id === id);
+  return l ? l.name : id;
+}
+
+function tropoImageUrl(layerId, stepIdx) {
+  const st = tropoMan.steps[stepIdx];
+  const dir = String(tropoMan.path || 'data/').replace(/^\/+/, '').replace(/\/*$/, '/');
+  return `${tropoRoot}${dir}s${String(st.step).padStart(2, '0')}/${layerId}.png`;
+}
+
+function tropoFmtUtc(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}Z`;
+}
+
+function tropoRelLabel(i) {
+  const dh = (new Date(tropoMan.steps[i].valid).getTime() - Date.now()) / 36e5;
+  const r = Math.round(dh);
+  if (Math.abs(dh) <= 1.5 || r === 0) return 'Now';
+  return `${r > 0 ? '+' : '\u2212'}${Math.abs(r)} h`;
+}
+
+function tropoRenderLegend() {
+  if (!tropoLegendEl) return;
+  tropoLegendEl.hidden = !tropoLegendOpen;
+  if (tropoLegendBtn) tropoLegendBtn.classList.toggle('active', tropoLegendOpen);
+  tropoLegendEl.textContent = '';
+  if (!tropoLegendOpen || !tropoMan) return;
+  const l = tropoMan.layers.find((x) => x.id === tropoProduct);
+  if (!l) return;
+  const add = (cls, text, parent) => {
+    const el = document.createElement('div');
+    el.className = cls;
+    if (text) el.textContent = text;
+    (parent || tropoLegendEl).appendChild(el);
+    return el;
+  };
+  add('tropo-legend-title', tropoName(l.id) + (l.unit ? ` (${l.unit})` : ''));
+  const hex = (c) => (/^#[0-9a-f]{6}$/i.test(c) ? c : '#888888');
+  if (Array.isArray(l.categories)) {
+    l.categories.forEach((c) => {
+      const row = add('tropo-legend-cat');
+      const sw = document.createElement('span');
+      sw.className = 'tropo-legend-sw';
+      sw.style.background = hex(c[1]);
+      row.appendChild(sw);
+      row.appendChild(document.createTextNode(String(c[0])));
+    });
+  } else if (Array.isArray(l.stops) && l.stops.length) {
+    const span = (l.hi - l.lo) || 1;
+    const grad = l.stops.map((s) => {
+      const c = hex(s[1]);
+      const a = Math.max(0.5, Number(s[2]) / 255);
+      const rgba = `rgba(${parseInt(c.slice(1, 3), 16)},${parseInt(c.slice(3, 5), 16)},${parseInt(c.slice(5, 7), 16)},${a})`;
+      return `${rgba} ${Math.min(100, Math.max(0, (s[0] - l.lo) / span * 100))}%`;
+    }).join(',');
+    const bar = add('tropo-legend-bar');
+    bar.style.background = `linear-gradient(90deg,${grad})`;
+    const ticks = add('tropo-legend-ticks');
+    (l.ticks || []).forEach((t, i) => {
+      const pct = Math.min(100, Math.max(0, (t - l.lo) / span * 100));
+      const sp = document.createElement('span');
+      sp.textContent = l.tick_labels ? l.tick_labels[i] : String(t);
+      sp.style.left = `${pct}%`;
+      sp.style.transform = pct <= 1 ? 'none' : pct >= 99 ? 'translateX(-100%)' : 'translateX(-50%)';
+      ticks.appendChild(sp);
+    });
+  }
+  const notes = {
+    type: 'Shown where 900 MHz is trapped',
+    strength: 'Margin above 1 means 900 MHz is trapped',
+    likelihood: 'Heuristic, not calibrated',
+  };
+  if (l.note) add('tropo-legend-note', l.note);
+  if (notes[l.id]) add('tropo-legend-note', notes[l.id]);
+}
+
+function tropoRender() {
+  if (!tropoMan) return;
+  const st = tropoMan.steps[tropoStep];
+  const d = new Date(st.valid);
+  tropoTimeEl.textContent = '';
+  const b = document.createElement('b');
+  b.textContent = tropoRelLabel(tropoStep);
+  tropoTimeEl.appendChild(b);
+  tropoTimeEl.appendChild(document.createTextNode(
+    `  ${tropoFmtUtc(d)}  (${d.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })} local)`));
+  tropoTimeEl.title = st.source || '';
+  const url = tropoImageUrl(tropoProduct, tropoStep);
+  if (!tropoOverlay) {
+    tropoOverlay = L.imageOverlay(url, tropoMan.bounds, {
+      opacity: tropoOp / 100, interactive: false, pane: 'tropoPane',
+    });
+    tropoOverlay.on('error', () => { tropoStatusEl.textContent = 'Forecast image unavailable.'; });
+    tropoOverlay.on('load', () => { tropoStatusEl.textContent = tropoStatusText(); });
+  } else {
+    tropoOverlay.setUrl(url);
+  }
+  if (tropoEnabled && !map.hasLayer(tropoOverlay)) tropoOverlay.addTo(map);
+  tropoRenderLegend();
+  const nx = (tropoStep + 1) % tropoMan.steps.length;
+  new Image().src = tropoImageUrl(tropoProduct, nx);
+}
+
+function tropoStatusText() {
+  if (!tropoMan) return '';
+  if (tropoMan.demo) return 'Demo data - not a forecast.';
+  const age = (Date.now() / 1000 - tropoMan.updated_epoch) / 3600;
+  const stale = age > (tropoMan.warn_after_h || 3) ? ' (may be stale)' : '';
+  return `Cycle ${tropoFmtUtc(new Date(tropoMan.cycle))}, updated ${age.toFixed(1)} h ago${stale}`;
+}
+
+async function tropoLoad() {
+  if (tropoMan) return true;
+  if (!tropoLoading) {
+    tropoLoading = fetch(`${tropoRoot}data/latest.json?_=${Date.now()}`, { cache: 'no-store' })
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((m) => {
+        if (!m || !Array.isArray(m.steps) || !m.steps.length || !Array.isArray(m.layers)) {
+          throw new Error('bad manifest');
+        }
+        tropoMan = m;
+        const ids = new Set(m.layers.map((l) => l.id));
+        const ordered = TROPO_PRODUCTS.map((p) => p[0]).filter((id) => ids.has(id));
+        m.layers.forEach((l) => { if (!ordered.includes(l.id)) ordered.push(l.id); });
+        tropoProductSel.textContent = '';
+        ordered.forEach((id) => {
+          const o = document.createElement('option');
+          o.value = id;
+          o.textContent = tropoName(id);
+          tropoProductSel.appendChild(o);
+        });
+        if (!ordered.includes(tropoProduct)) tropoProduct = ordered[0];
+        tropoProductSel.value = tropoProduct;
+        tropoStepInput.max = String(m.steps.length - 1);
+        let best = 0;
+        let bd = Infinity;
+        m.steps.forEach((s, i) => {
+          const dd = Math.abs(new Date(s.valid).getTime() - Date.now());
+          if (dd < bd) { bd = dd; best = i; }
+        });
+        tropoStep = best;
+        tropoStepInput.value = String(best);
+        tropoStatusEl.textContent = tropoStatusText();
+        return true;
+      })
+      .catch((err) => {
+        tropoLoading = null;
+        tropoStatusEl.textContent = `Tropo data unavailable (${err.message}).`;
+        return false;
+      });
+  }
+  return tropoLoading;
+}
+
+async function setTropoEnabled(on) {
+  tropoEnabled = on;
+  if (tropoToggle) tropoToggle.classList.toggle('active', on);
+  if (tropoPanel) tropoPanel.hidden = !on;
+  if (!on) {
+    if (tropoOverlay && map.hasLayer(tropoOverlay)) map.removeLayer(tropoOverlay);
+    return;
+  }
+  tropoStatusEl.textContent = 'Loading forecast...';
+  if (await tropoLoad() && tropoEnabled) tropoRender();
+}
+
+if (tropoToggle && tropoPanel) {
+  tropoOpacity.value = String(tropoOp);
+  tropoOpacityValue.textContent = `${tropoOp}%`;
+  tropoToggle.addEventListener('click', () => { setTropoEnabled(!tropoEnabled); });
+  tropoProductSel.addEventListener('change', () => {
+    tropoProduct = tropoProductSel.value;
+    localStorage.setItem('meshmapTropoProduct', tropoProduct);
+    tropoRender();
+  });
+  tropoStepInput.addEventListener('input', () => {
+    tropoStep = Number(tropoStepInput.value) || 0;
+    tropoRender();
+  });
+  tropoOpacity.addEventListener('input', () => {
+    tropoOp = Number(tropoOpacity.value) || 70;
+    tropoOpacityValue.textContent = `${tropoOp}%`;
+    localStorage.setItem('meshmapTropoOpacity', String(tropoOp));
+    if (tropoOverlay) tropoOverlay.setOpacity(tropoOp / 100);
+  });
+  tropoLegendBtn.addEventListener('click', () => {
+    tropoLegendOpen = !tropoLegendOpen;
+    tropoRenderLegend();
+  });
+}
+
 setArcadeModeEnabled(arcadeModeEnabled, false);
 
 const legendToggle = document.getElementById('legend-toggle');
@@ -4913,4 +5147,7 @@ map.on('click', (ev) => {
   if (target && target.closest && target.closest('.leaflet-popup')) {
     return;
   }
+  // Route clicks stop propagation, so any click that reaches here is on empty map.
+  hideRouteDetailsPanel();
+  layoutSidePanels();
 });
