@@ -221,16 +221,16 @@ try:
   )
 except ValueError:
   GIT_CHECK_INTERVAL_SECONDS = 43200.0
-DISTANCE_UNITS = os.getenv("DISTANCE_UNITS", "km").strip().lower()
+DISTANCE_UNITS = os.getenv("DISTANCE_UNITS", "mi").strip().lower()
 if DISTANCE_UNITS not in ("km", "mi"):
-  DISTANCE_UNITS = "km"
+  DISTANCE_UNITS = "mi"
 HEAT_DEFAULT_ON = os.getenv("HEAT_DEFAULT_ON", "true").lower() == "true"
 try:
-  NODE_MARKER_RADIUS = float(os.getenv("NODE_MARKER_RADIUS", "8"))
+  NODE_MARKER_RADIUS = float(os.getenv("NODE_MARKER_RADIUS", "2"))
 except ValueError:
-  NODE_MARKER_RADIUS = 8.0
+  NODE_MARKER_RADIUS = 2.0
 if NODE_MARKER_RADIUS <= 0:
-  NODE_MARKER_RADIUS = 8.0
+  NODE_MARKER_RADIUS = 2.0
 try:
   HISTORY_LINK_SCALE = float(os.getenv("HISTORY_LINK_SCALE", "1"))
 except ValueError:

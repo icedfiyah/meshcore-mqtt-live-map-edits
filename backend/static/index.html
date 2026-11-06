@@ -95,15 +95,8 @@
               fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
         </button>
-        <div class="hud-title"><span class="pill">Live</span> {{SITE_TITLE}}</div>
+        <div class="hud-title"><span class="pill">Live</span></div>
       </div>
-      <button class="hud-action hud-share" id="share-toggle" type="button" aria-label="Copy share link"
-        title="Copy share link">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M18 16.1a2.9 2.9 0 0 0-1.95.77l-7.1-4.14c.04-.23.05-.46.05-.7 0-.23-.01-.46-.05-.68l7.05-4.12A2.95 2.95 0 1 0 14.5 5c0 .23.02.46.07.68L7.52 9.8a2.9 2.9 0 1 0 0 4.4l7.05 4.12a2.9 2.9 0 1 0 3.43-2.22z" />
-        </svg>
-      </button>
       <a class="hud-action hud-custom" id="custom-link" href="{{CUSTOM_LINK_URL}}" target="_blank" rel="noopener"
         aria-label="Open custom link">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -128,7 +121,7 @@
       </div>
       <div class="node-size-control">
         <span class="node-size-label">Node size</span>
-        <input class="node-size-range" id="node-size" type="range" min="4" max="14" step="1" />
+        <input class="node-size-range" id="node-size" type="range" min="2" max="14" step="1" />
         <span class="node-size-value" id="node-size-value"></span>
       </div>
       <button class="legend-toggle" id="legend-toggle" type="button">Hide legend</button>

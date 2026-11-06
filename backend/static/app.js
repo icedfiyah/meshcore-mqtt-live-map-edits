@@ -323,8 +323,8 @@ function routeStyleForDisplay(payloadType, routeMode, arcadeMode = false) {
   const isMessage = payloadNum === 2 || payloadNum === 5;
   const style = {
     color: isAdvert
-      ? '#2ecc71'
-      : (isTrace ? '#ff7a1a' : (isMessage ? '#2b8cff' : (isFanout ? '#2b8cff' : '#ff7a1a'))),
+      ? '#ef4444'
+      : (isTrace ? '#facc15' : (isMessage ? '#ff7a1a' : (isFanout ? '#2b8cff' : '#ff7a1a'))),
     weight: isFanout ? 4 : 5,
     opacity: isFanout ? 0.85 : 0.9,
     lineCap: 'butt',
@@ -404,7 +404,7 @@ const heatDefaultOn = parseBoolParam(config.heatDefaultOn) ?? true;
 const mqttOnlineSeconds = Number(config.mqttOnlineSeconds) || 300;
 const mqttOnlineStatusTtlSeconds = Number(config.mqttOnlineStatusTtlSeconds) || mqttOnlineSeconds;
 const mqttOnlineInternalTtlSeconds = Number(config.mqttOnlineInternalTtlSeconds) || mqttOnlineSeconds;
-const defaultDistanceUnits = config.distanceUnits || 'km';
+const defaultDistanceUnits = config.distanceUnits || 'mi';
 const heatAvailable = typeof L.heatLayer === 'function';
 const heatLayer = heatAvailable ? L.heatLayer([], {
   radius: 28,
@@ -475,27 +475,27 @@ if (storedLabels === null) {
   localStorage.setItem('meshmapShowLabels', 'false');
 }
 const validUnits = new Set(['km', 'mi']);
-let distanceUnits = (localStorage.getItem('meshmapDistanceUnits') || defaultDistanceUnits || 'km').toLowerCase();
+let distanceUnits = (localStorage.getItem('meshmapDistanceUnits2') || defaultDistanceUnits || 'mi').toLowerCase();
 if (!validUnits.has(distanceUnits)) {
-  distanceUnits = 'km';
-  localStorage.setItem('meshmapDistanceUnits', distanceUnits);
+  distanceUnits = 'mi';
+  localStorage.setItem('meshmapDistanceUnits2', distanceUnits);
 }
 if (validUnits.has(queryUnits)) {
   distanceUnits = queryUnits;
-  localStorage.setItem('meshmapDistanceUnits', distanceUnits);
+  localStorage.setItem('meshmapDistanceUnits2', distanceUnits);
 }
-const NODE_RADIUS_MIN = 4;
+const NODE_RADIUS_MIN = 2;
 const NODE_RADIUS_MAX = 14;
 const envNodeRadius = Number(config.nodeRadius);
-const defaultNodeRadius = Number.isFinite(envNodeRadius) ? envNodeRadius : 8;
+const defaultNodeRadius = Number.isFinite(envNodeRadius) ? envNodeRadius : 2;
 let nodeMarkerRadius = defaultNodeRadius;
-const storedRadius = parseNumberParam(localStorage.getItem('meshmapNodeRadius'));
+const storedRadius = parseNumberParam(localStorage.getItem('meshmapNodeRadius2'));
 if (Number.isFinite(storedRadius)) {
   nodeMarkerRadius = storedRadius;
 }
 nodeMarkerRadius = clampNumber(nodeMarkerRadius, NODE_RADIUS_MIN, NODE_RADIUS_MAX);
 if (!Number.isFinite(storedRadius)) {
-  localStorage.setItem('meshmapNodeRadius', String(nodeMarkerRadius));
+  localStorage.setItem('meshmapNodeRadius2', String(nodeMarkerRadius));
 }
 const historyLabel = document.getElementById('history-window-label');
 const historyFilter = document.getElementById('history-filter');
@@ -750,16 +750,12 @@ function meshCoreContactTypeForDevice(d) {
 }
 
 function markerStyleForRole(role) {
-  if (role === 'repeater') {
-    return { color: '#1d4ed8', fillColor: '#2b8cff', fillOpacity: 0.95, radius: nodeMarkerRadius, weight: 2 };
-  }
+  // companion: always orange; repeater/room/unknown: white on the dark map, black on the light map
   if (role === 'companion') {
-    return { color: '#6b21a8', fillColor: '#a855f7', fillOpacity: 0.95, radius: nodeMarkerRadius, weight: 2 };
+    return { color: '#ea580c', fillColor: '#ff7a1a', fillOpacity: 0.95, radius: nodeMarkerRadius, weight: 1 };
   }
-  if (role === 'room') {
-    return { color: '#b45309', fillColor: '#f59e0b', fillOpacity: 0.95, radius: nodeMarkerRadius, weight: 2 };
-  }
-  return { color: '#4b5563', fillColor: '#d1d5db', fillOpacity: 0.95, radius: nodeMarkerRadius, weight: 2 };
+  const dot = document.body.classList.contains('dark-map') ? '#ffffff' : '#000000';
+  return { color: dot, fillColor: dot, fillOpacity: 0.95, radius: nodeMarkerRadius, weight: 1 };
 }
 
 function markerStyleForDevice(d) {
@@ -1284,7 +1280,7 @@ function setNodeMarkerRadius(value, persist = true) {
   if (!Number.isFinite(next)) return;
   nodeMarkerRadius = next;
   if (persist) {
-    localStorage.setItem('meshmapNodeRadius', String(nodeMarkerRadius));
+    localStorage.setItem('meshmapNodeRadius2', String(nodeMarkerRadius));
   }
   updateNodeSizeUi();
   refreshOnlineMarkers();
@@ -3376,6 +3372,13 @@ function removeDevices(ids) {
   refreshOnlineMarkers();
 }
 
+function restyleAllMarkers() {
+  markers.forEach((m, id) => {
+    const d = deviceData.get(id);
+    if (d && m.setStyle) m.setStyle(markerStyleForDevice(d));
+  });
+}
+
 function refreshOnlineMarkers() {
   markers.forEach((m, id) => {
     const d = deviceData.get(id);
@@ -4602,6 +4605,7 @@ function setBaseLayer(name) {
   });
   document.body.classList.toggle('dark-map', name === 'dark');
   document.body.classList.toggle('plain-map', !target);
+  if (typeof restyleAllMarkers === 'function') restyleAllMarkers();
   baseLayer = name;
   localStorage.setItem('meshmapBaseLayer', baseLayer);
   if (mapToggle) {
@@ -4627,7 +4631,7 @@ function setDistanceUnits(units, persist = true) {
   if (!validUnits.has(units)) return;
   distanceUnits = units;
   if (persist) {
-    localStorage.setItem('meshmapDistanceUnits', units);
+    localStorage.setItem('meshmapDistanceUnits2', units);
   }
   setUnitsLabel();
   if (activeRouteDetailsMeta && routeDetailsPanel && !routeDetailsPanel.hidden) {

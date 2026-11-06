@@ -412,17 +412,17 @@
     }
 
     .legend-trace {
-      border-color: #ff7a1a;
+      border-color: #facc15;
       border-top-style: dashed;
     }
 
     .legend-message {
-      border-color: #2b8cff;
+      border-color: #ff7a1a;
       border-top-style: dashed;
     }
 
     .legend-advert {
-      border-color: #2ecc71;
+      border-color: #ef4444;
       border-top-style: dotted;
     }
 
@@ -464,24 +464,23 @@
       display: inline-block;
     }
 
-    .legend-repeater {
-      border-color: #1d4ed8;
-      background: #2b8cff;
+    .legend-repeater,
+    .legend-room,
+    .legend-unknown {
+      border-color: #fff;   /* HUD panel is dark in both map modes; keep the light-map black dot visible */
+      background: #000;
+    }
+
+    .dark-map .legend-repeater,
+    .dark-map .legend-room,
+    .dark-map .legend-unknown {
+      border-color: #fff;
+      background: #fff;
     }
 
     .legend-companion {
-      border-color: #6b21a8;
-      background: #a855f7;
-    }
-
-    .legend-room {
-      border-color: #b45309;
-      background: #f59e0b;
-    }
-
-    .legend-unknown {
-      border-color: #4b5563;
-      background: #d1d5db;
+      border-color: #ea580c;
+      background: #ff7a1a;
     }
 
     .legend-online {
