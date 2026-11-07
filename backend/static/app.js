@@ -2827,7 +2827,7 @@ function layoutSidePanels() {
   });
   if (!panels.length) return;
   const gap = 12;
-  const availableHeight = Math.max(200, window.innerHeight - 24);
+  const availableHeight = Math.max(200, window.innerHeight - 70);
   const totalHeight = panels.reduce((sum, panel) => sum + (panel.offsetHeight || 0), 0)
     + (panels.length - 1) * gap;
   if (totalHeight > availableHeight) {
@@ -2848,7 +2848,8 @@ function layoutSidePanels() {
     });
     return;
   }
-  let top = 18;
+  const barH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-h')) || 46;
+  let top = barH + 10;
   panels.forEach(panel => {
     panel.style.top = `${top}px`;
     top += (panel.offsetHeight || 0) + gap;
@@ -4364,7 +4365,7 @@ let tropoProduct = localStorage.getItem('meshmapTropoProduct') || 'index';
 let tropoStep = 0;
 let tropoOp = Number(localStorage.getItem('meshmapTropoOpacity'));
 if (!(tropoOp >= 10 && tropoOp <= 100)) tropoOp = 70;
-let tropoLegendOpen = false;
+let tropoLegendOpen = true;
 
 if (!map.getPane('tropoPane')) {
   const pane = map.createPane('tropoPane');
@@ -4537,6 +4538,11 @@ async function setTropoEnabled(on) {
   tropoEnabled = on;
   if (tropoToggle) tropoToggle.classList.toggle('active', on);
   if (tropoPanel) tropoPanel.hidden = !on;
+  if (on && tropoPanel) {
+    tropoPanel.classList.remove('collapsed');
+    const cb = document.getElementById('tropo-collapse');
+    if (cb) cb.textContent = 'Collapse';
+  }
   if (!on) {
     if (tropoOverlay && map.hasLayer(tropoOverlay)) map.removeLayer(tropoOverlay);
     return;
@@ -4568,7 +4574,41 @@ if (tropoToggle && tropoPanel) {
     tropoLegendOpen = !tropoLegendOpen;
     tropoRenderLegend();
   });
+  const tropoCollapseBtn = document.getElementById('tropo-collapse');
+  tropoCollapseBtn.addEventListener('click', () => {
+    const c = tropoPanel.classList.toggle('collapsed');
+    tropoCollapseBtn.textContent = c ? 'Tropo \u25B4' : 'Collapse';
+    tropoCollapseBtn.setAttribute('aria-expanded', c ? 'false' : 'true');
+  });
 }
+
+// ---- Header bar: config dropdown and credits ----
+const configToggle = document.getElementById('config-toggle');
+const configMenu = document.getElementById('config-menu');
+const setConfigOpen = (open) => {
+  if (!configMenu || !configToggle) return;
+  configMenu.hidden = !open;
+  configToggle.classList.toggle('active', open);
+  configToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+};
+if (configToggle && configMenu) {
+  configToggle.addEventListener('click', () => setConfigOpen(configMenu.hidden));
+  document.addEventListener('pointerdown', (ev) => {
+    if (configMenu.hidden) return;
+    if (configMenu.contains(ev.target) || configToggle.contains(ev.target)) return;
+    setConfigOpen(false);
+  }, true);
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') setConfigOpen(false); });
+}
+const creditsModal = document.getElementById('credits-modal');
+const setCreditsOpen = (open) => { if (creditsModal) creditsModal.hidden = !open; };
+const creditsBtn = document.getElementById('credits-toggle');
+if (creditsBtn) creditsBtn.addEventListener('click', () => { setConfigOpen(false); setCreditsOpen(true); });
+['credits-close', 'credits-backdrop'].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', () => setCreditsOpen(false));
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') setCreditsOpen(false); });
 
 setArcadeModeEnabled(arcadeModeEnabled, false);
 

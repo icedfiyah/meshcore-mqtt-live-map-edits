@@ -557,8 +557,6 @@
       cursor: pointer;
     }
 
-    .tropo-panel { margin-top: 6px; padding: 8px; border-radius: 8px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .15); font-size: 12px; }
-    .tropo-panel[hidden] { display: none; }
     .tropo-select { width: 100%; font-size: 12px; padding: 4px 6px; border-radius: 6px; background: rgba(15, 23, 42, .8); color: #fff; border: 1px solid rgba(255, 255, 255, .25); }
     .tropo-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
     .tropo-label { width: 52px; flex: none; color: rgba(255, 255, 255, .75); }
@@ -1387,3 +1385,71 @@
       margin-top: 0;
       pointer-events: auto;
     }
+
+    /* ---- Header bar layout ---- */
+    :root { --bar-h: 46px; }
+
+    #map { position: absolute; top: var(--bar-h); left: 0; right: 0; bottom: 0; height: auto; }
+
+    .hud {
+      position: fixed; top: 0; left: 0; right: 0; width: auto; max-width: none; max-height: none;
+      height: var(--bar-h); padding: 0 10px; border-radius: 0; display: flex; align-items: center;
+      gap: 10px; overflow: visible; background: rgba(8, 13, 24, .95); z-index: 1100;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .35);
+    }
+    .hud-header { flex: none; }
+    .hud-buttons { display: flex; align-items: center; gap: 6px; flex: none; }
+    .hud .map-toggle, .hud .legend-toggle { margin-top: 0; white-space: nowrap; }
+    .hud-info { display: flex; align-items: center; gap: 10px; margin-left: auto; min-width: 0; }
+    .hud-info .small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hud-info .node-search { margin-top: 0; width: 220px; flex: none; }
+    .hud-toggle { display: inline-flex; }
+    .config-menu {
+      position: absolute; top: var(--bar-h); left: 10px; width: 340px; box-sizing: border-box;
+      max-height: calc(100vh - var(--bar-h) - 16px); overflow-y: auto; padding: 10px 12px;
+      background: rgba(8, 13, 24, .97); border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 0 0 10px 10px; box-shadow: 0 10px 28px rgba(0, 0, 0, .45); z-index: 1101;
+    }
+    .config-menu[hidden] { display: none; }
+    .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+    .config-grid .map-toggle { margin: 0; }
+    .config-menu .route-node-filter, .config-menu .legend-toggle { margin-top: 10px; }
+
+    @media (min-width: 901px) {
+      .history-panel, .peers-panel, .route-details-panel { top: calc(var(--bar-h) + 10px); }
+    }
+
+    /* ---- Tropo bottom panel ---- */
+    .tropo-panel {
+      position: fixed; left: 10px; bottom: 10px; width: min(560px, calc(100vw - 130px)); box-sizing: border-box;
+      z-index: 900; padding: 8px 10px; border-radius: 10px; background: rgba(8, 13, 24, .92); color: #fff;
+      border: 1px solid rgba(255, 255, 255, .18); box-shadow: 0 6px 20px rgba(0, 0, 0, .4);
+      font: 12px ui-sans-serif, system-ui, sans-serif;
+    }
+    .tropo-panel[hidden] { display: none; }
+    .tropo-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .tropo-head-btns { display: flex; gap: 6px; }
+    .tropo-panel .map-toggle { margin-top: 0; }
+    .tropo-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; }
+    .tropo-controls .tropo-select { flex: 0 0 190px; width: 190px; }
+    .tropo-controls .tropo-row { flex: 1 1 180px; margin-top: 0; }
+    .tropo-legend { max-width: 440px; }
+    .tropo-panel.collapsed { width: auto; padding: 4px; }
+    .tropo-panel.collapsed .tropo-body, .tropo-panel.collapsed .tropo-head strong,
+    .tropo-panel.collapsed .tropo-legend-toggle { display: none; }
+
+    /* ---- Credits ---- */
+    .credits-modal { position: fixed; inset: 0; z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .credits-modal[hidden] { display: none; }
+    .credits-backdrop { position: absolute; inset: 0; background: rgba(2, 6, 23, .7); }
+    .credits-card {
+      position: relative; width: min(96vw, 560px); max-height: 85vh; overflow: auto; box-sizing: border-box;
+      padding: 18px 20px; border-radius: 16px; background: rgba(15, 23, 42, .98); color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, .16); font: 13px/1.45 ui-sans-serif, system-ui, sans-serif;
+    }
+    .credits-card h2 { margin: 0 0 6px; font-size: 16px; }
+    .credits-card h3 { margin: 12px 0 4px; font-size: 13px; color: #93c5fd; }
+    .credits-card ul { margin: 0; padding-left: 18px; }
+    .credits-card li { margin: 3px 0; }
+    .credits-card a { color: #93c5fd; }
+    .credits-close { position: absolute; top: 8px; right: 10px; color: #f8fafc; }

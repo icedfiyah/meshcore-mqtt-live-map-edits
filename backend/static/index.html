@@ -89,13 +89,13 @@
   <div class="hud">
     <div class="hud-header">
       <div class="hud-brand">
-        <button class="hud-toggle" id="hud-toggle" type="button" aria-label="Toggle panel">
+        <span class="hud-toggle">
           <svg class="hud-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="12" cy="12" r="2.4" fill="currentColor" />
             <path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"
               fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
-        </button>
+        </span>
         <div class="hud-title"><span class="pill">Live</span></div>
       </div>
       <a class="hud-action hud-custom" id="custom-link" href="{{CUSTOM_LINK_URL}}" target="_blank" rel="noopener"
@@ -106,51 +106,31 @@
         </svg>
       </a>
     </div>
-    <div class="hud-body">
-      <div class="small">{{SITE_FEED_NOTE}}</div>
-      <div class="small" id="stats"></div>
-      <div class="hud-update" id="update-banner" {{UPDATE_BANNER_HIDDEN}}>
-        <span class="hud-update-text" id="update-text">Update available</span>
-        <button class="map-toggle hud-update-dismiss" id="update-dismiss" type="button">Hide</button>
-      </div>
-      <div class="node-search">
-        <input class="node-search-input" id="node-search" type="text" placeholder="Search nodes by name or key..."
-          autocomplete="off" />
-        <div class="node-search-results" id="node-search-results" hidden></div>
-      </div>
-      <div class="node-size-control">
+    <div class="hud-buttons">
+      <div class="config-wrap">
+        <button class="map-toggle" id="config-toggle" type="button" aria-expanded="false" aria-controls="config-menu">Config</button>
+        <div class="config-menu" id="config-menu" hidden>
+          <div class="node-size-control">
         <span class="node-size-label">Node size</span>
         <input class="node-size-range" id="node-size" type="range" min="2" max="14" step="1" />
         <span class="node-size-value" id="node-size-value"></span>
       </div>
-      <button class="legend-toggle" id="legend-toggle" type="button">Hide legend</button>
-      <button class="map-toggle" id="map-toggle" type="button">Dark map</button>
-      <button class="map-toggle" id="units-toggle" type="button">Units: km</button>
-      <button class="map-toggle" id="labels-toggle" type="button">Labels Off</button>
-      <button class="map-toggle" id="nodes-toggle" type="button">Hide nodes</button>
-      <button class="map-toggle" id="heat-toggle" type="button">Hide heat</button>
-      <button class="map-toggle" id="coverage-toggle" type="button">Coverage</button>
-      <button class="map-toggle" id="history-toggle" type="button">History tool</button>
-      <button class="map-toggle" id="peers-toggle" type="button">Peers tool</button>
-      <button class="map-toggle" id="hops-toggle" type="button">Show hops</button>
-      <button class="map-toggle" id="tropo-toggle" type="button">Tropo</button>
-      <div class="tropo-panel" id="tropo-panel" hidden>
-        <select class="tropo-select" id="tropo-product" aria-label="Tropo product"></select>
-        <label class="tropo-row">
-          <span class="tropo-label">Opacity</span>
-          <input class="tropo-range" id="tropo-opacity" type="range" min="10" max="100" step="5" value="70" />
-          <span class="tropo-value" id="tropo-opacity-value"></span>
-        </label>
-        <label class="tropo-row">
-          <span class="tropo-label">Forecast</span>
-          <input class="tropo-range" id="tropo-step" type="range" min="0" max="0" step="1" value="0" />
-        </label>
-        <div class="tropo-time" id="tropo-time"></div>
-        <button class="map-toggle tropo-legend-toggle" id="tropo-legend-toggle" type="button">Legend</button>
-        <div class="tropo-legend" id="tropo-legend" hidden></div>
-        <div class="tropo-status" id="tropo-status"></div>
+          <div class="config-grid">
+            <button class="map-toggle" id="heat-toggle" type="button">Hide heat</button>
+            <button class="map-toggle" id="map-toggle" type="button">Dark map</button>
+            <button class="map-toggle" id="units-toggle" type="button">Units: km</button>
+            <button class="map-toggle" id="labels-toggle" type="button">Labels Off</button>
+            <button class="map-toggle" id="nodes-toggle" type="button">Hide nodes</button>
+            <button class="map-toggle" id="coverage-toggle" type="button">Coverage</button>
+          </div>
+          <div class="route-node-filter">
+        <label for="route-node-filter">Filter Live Routes</label>
+        <input id="route-node-filter" type="search" autocomplete="off"
+          placeholder="Node name or key, comma separated..." />
+        <div class="node-search-results route-node-filter-results"
+          id="route-node-filter-results" hidden></div>
       </div>
-      <div class="route-byte-control" hidden style="display:none">
+          <div class="route-byte-control" hidden style="display:none">
         <span class="route-byte-label">Path bytes</span>
         <details class="byte-dropdown" id="route-byte-filter">
           <summary aria-label="Route path byte filter"><span class="byte-summary-label">All</span></summary>
@@ -162,14 +142,8 @@
           </div>
         </details>
       </div>
-      <div class="route-node-filter">
-        <label for="route-node-filter">Filter Live Routes</label>
-        <input id="route-node-filter" type="search" autocomplete="off"
-          placeholder="Node name or key, comma separated..." />
-        <div class="node-search-results route-node-filter-results"
-          id="route-node-filter-results" hidden></div>
-      </div>
-      <div class="legend">
+          <button class="legend-toggle" id="legend-toggle" type="button">Hide legend</button>
+          <div class="legend">
         <div class="legend-item"><span class="legend-line legend-trace"></span> Trace/path</div>
         <div class="legend-item"><span class="legend-line legend-message"></span> Message</div>
         <div class="legend-item"><span class="legend-line legend-advert"></span> Advert</div>
@@ -205,6 +179,26 @@
         <div class="legend-item legend-item-filter"><span class="legend-dot legend-unknown"></span> Unknown
           <button class="legend-filter-button role-filter-button" data-role-filter="unknown" type="button">Shown</button>
         </div>
+      </div>
+        </div>
+      </div>
+      <button class="map-toggle" id="hops-toggle" type="button">Show hops</button>
+      <button class="map-toggle" id="tropo-toggle" type="button">Tropo</button>
+      <button class="map-toggle" id="history-toggle" type="button">History tool</button>
+      <button class="map-toggle" id="peers-toggle" type="button">Peers tool</button>
+      <button class="map-toggle" id="credits-toggle" type="button">Credits</button>
+    </div>
+    <div class="hud-info">
+      <div class="small">{{SITE_FEED_NOTE}}</div>
+      <div class="small" id="stats"></div>
+      <div class="hud-update" id="update-banner" {{UPDATE_BANNER_HIDDEN}}>
+        <span class="hud-update-text" id="update-text">Update available</span>
+        <button class="map-toggle hud-update-dismiss" id="update-dismiss" type="button">Hide</button>
+      </div>
+      <div class="node-search">
+        <input class="node-search-input" id="node-search" type="text" placeholder="Search nodes by name or key..."
+          autocomplete="off" />
+        <div class="node-search-results" id="node-search-results" hidden></div>
       </div>
     </div>
   </div>
@@ -275,6 +269,50 @@
     <div class="small" id="route-details-title"></div>
     <div class="small" id="route-details-total"></div>
     <div class="route-details-content" id="route-details-content"></div>
+  </div>
+  <div class="tropo-panel" id="tropo-panel" hidden>
+    <div class="tropo-head">
+      <strong>Tropo forecast</strong>
+      <span class="tropo-head-btns">
+        <button class="map-toggle tropo-legend-toggle" id="tropo-legend-toggle" type="button">Legend</button>
+        <button class="map-toggle" id="tropo-collapse" type="button" aria-expanded="true">Collapse</button>
+      </span>
+    </div>
+    <div class="tropo-body">
+      <div class="tropo-controls">
+        <select class="tropo-select" id="tropo-product" aria-label="Tropo product"></select>
+        <label class="tropo-row"><span class="tropo-label">Opacity</span>
+          <input class="tropo-range" id="tropo-opacity" type="range" min="10" max="100" step="5" value="70" />
+          <span class="tropo-value" id="tropo-opacity-value"></span></label>
+        <label class="tropo-row"><span class="tropo-label">Forecast</span>
+          <input class="tropo-range" id="tropo-step" type="range" min="0" max="0" step="1" value="0" /></label>
+      </div>
+      <div class="tropo-time" id="tropo-time"></div>
+      <div class="tropo-legend" id="tropo-legend" hidden></div>
+      <div class="tropo-status" id="tropo-status"></div>
+    </div>
+  </div>
+  <div class="credits-modal" id="credits-modal" hidden>
+    <div class="credits-backdrop" id="credits-backdrop"></div>
+    <div class="credits-card" role="dialog" aria-modal="true" aria-labelledby="credits-title">
+      <button class="panel-close credits-close" id="credits-close" type="button" aria-label="Close credits">&times;</button>
+      <h2 id="credits-title">Credits and attributions</h2>
+      <h3>Map</h3>
+      <ul>
+        <li>Basemap tiles by <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>, schema by <a href="https://openmaptiles.org" target="_blank" rel="noopener">OpenMapTiles</a>.</li>
+        <li>Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL).</li>
+      </ul>
+      <h3>Tropo forecast</h3>
+      <ul>
+        <li>Derived from NOAA/NCEP <a href="https://rapidrefresh.noaa.gov/hrrr/" target="_blank" rel="noopener">HRRR</a> and <a href="https://rapidrefresh.noaa.gov/" target="_blank" rel="noopener">RAP</a> model output. Experimental, not an official forecast.</li>
+      </ul>
+      <h3>Software</h3>
+      <ul>
+        <li>Based on <a href="https://github.com/yellowcooln/meshcore-mqtt-live-map" target="_blank" rel="noopener">Meshcore MQTT Live Map</a> by yellowcooln (v1.9.8), licensed <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL-3.0</a>. This modified version is under the same license.</li>
+        <li>Source code of this modified version: <a href="{{SOURCE_URL}}" target="_blank" rel="noopener">{{SOURCE_URL}}</a></li>
+        <li><a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a> (BSD-2-Clause), <a href="https://github.com/Leaflet/Leaflet.heat" target="_blank" rel="noopener">Leaflet.heat</a> (BSD-2-Clause), <a href="https://maplibre.org" target="_blank" rel="noopener">MapLibre GL JS</a> (BSD-3-Clause), <a href="https://github.com/maplibre/maplibre-gl-leaflet" target="_blank" rel="noopener">maplibre-gl-leaflet</a> (ISC), <a href="https://github.com/michaelhart/meshcore-decoder" target="_blank" rel="noopener">meshcore-decoder</a> (MIT).</li>
+      </ul>
+    </div>
   </div>
   <div class="qr-modal" id="qr-modal" hidden>
     <div class="qr-modal-backdrop" id="qr-modal-backdrop"></div>
