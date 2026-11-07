@@ -1453,3 +1453,7 @@
     .credits-card li { margin: 3px 0; }
     .credits-card a { color: #93c5fd; }
     .credits-close { position: absolute; top: 8px; right: 10px; color: #f8fafc; }
+
+    .hud-header:empty { display: none; }
+    .peers-panel .node-search { margin-top: 6px; width: 100%; }
+    .peers-panel .node-search-results { position: static; margin-top: 4px; max-height: 160px; }

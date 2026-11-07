@@ -88,16 +88,7 @@
   </script>
   <div class="hud">
     <div class="hud-header">
-      <div class="hud-brand">
-        <span class="hud-toggle">
-          <svg class="hud-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <circle cx="12" cy="12" r="2.4" fill="currentColor" />
-            <path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"
-              fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-          </svg>
-        </span>
-        <div class="hud-title"><span class="pill">Live</span></div>
-      </div>
+      
       <a class="hud-action hud-custom" id="custom-link" href="{{CUSTOM_LINK_URL}}" target="_blank" rel="noopener"
         aria-label="Open custom link">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -195,11 +186,7 @@
         <span class="hud-update-text" id="update-text">Update available</span>
         <button class="map-toggle hud-update-dismiss" id="update-dismiss" type="button">Hide</button>
       </div>
-      <div class="node-search">
-        <input class="node-search-input" id="node-search" type="text" placeholder="Search nodes by name or key..."
-          autocomplete="off" />
-        <div class="node-search-results" id="node-search-results" hidden></div>
-      </div>
+      
     </div>
   </div>
   <div class="history-panel tool-panel" id="history-panel" hidden>
@@ -244,6 +231,11 @@
           aria-controls="peers-panel" aria-expanded="true">Minimize</button>
       </div>
     </div>
+    <div class="node-search">
+        <input class="node-search-input" id="node-search" type="text" placeholder="Search nodes by name or key..."
+          autocomplete="off" />
+        <div class="node-search-results" id="node-search-results" hidden></div>
+      </div>
     <div class="small" id="peers-status">Select a node to view peers.</div>
     <div class="small" id="peers-meta" hidden></div>
     <label class="peer-filter-label" for="peers-filter">Filter peers</label>
@@ -300,17 +292,17 @@
       <h3>Map</h3>
       <ul>
         <li>Basemap tiles by <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>, schema by <a href="https://openmaptiles.org" target="_blank" rel="noopener">OpenMapTiles</a>.</li>
-        <li>Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL).</li>
+        <li>Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</li>
       </ul>
       <h3>Tropo forecast</h3>
       <ul>
-        <li>Derived from NOAA/NCEP <a href="https://rapidrefresh.noaa.gov/hrrr/" target="_blank" rel="noopener">HRRR</a> and <a href="https://rapidrefresh.noaa.gov/" target="_blank" rel="noopener">RAP</a> model output. Experimental, not an official forecast.</li>
+        <li>In-house forecast model created and retrained by AI with NOAA/NCEP data.</li>
       </ul>
       <h3>Software</h3>
       <ul>
-        <li>Based on <a href="https://github.com/yellowcooln/meshcore-mqtt-live-map" target="_blank" rel="noopener">Meshcore MQTT Live Map</a> by yellowcooln (v1.9.8), licensed <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL-3.0</a>. This modified version is under the same license.</li>
+        <li>Based on <a href="https://github.com/yellowcooln/meshcore-mqtt-live-map" target="_blank" rel="noopener">Meshcore MQTT Live Map</a> by yellowcooln (v1.9.8).</li>
         <li>Source code of this modified version: <a href="{{SOURCE_URL}}" target="_blank" rel="noopener">{{SOURCE_URL}}</a></li>
-        <li><a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a> (BSD-2-Clause), <a href="https://github.com/Leaflet/Leaflet.heat" target="_blank" rel="noopener">Leaflet.heat</a> (BSD-2-Clause), <a href="https://maplibre.org" target="_blank" rel="noopener">MapLibre GL JS</a> (BSD-3-Clause), <a href="https://github.com/maplibre/maplibre-gl-leaflet" target="_blank" rel="noopener">maplibre-gl-leaflet</a> (ISC), <a href="https://github.com/michaelhart/meshcore-decoder" target="_blank" rel="noopener">meshcore-decoder</a> (MIT).</li>
+        <li><a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>, <a href="https://github.com/Leaflet/Leaflet.heat" target="_blank" rel="noopener">Leaflet.heat</a>, <a href="https://maplibre.org" target="_blank" rel="noopener">MapLibre GL JS</a>, <a href="https://github.com/maplibre/maplibre-gl-leaflet" target="_blank" rel="noopener">maplibre-gl-leaflet</a>, <a href="https://github.com/michaelhart/meshcore-decoder" target="_blank" rel="noopener">meshcore-decoder</a>.</li>
       </ul>
     </div>
   </div>

@@ -785,7 +785,7 @@ function setStats() {
   const routeLabel = routeFiltersInactive || visibleRoutes === totalRoutes
     ? `${visibleRoutes} routes`
     : `${visibleRoutes}/${totalRoutes} routes`;
-  document.getElementById('stats').textContent = `${markers.size} active devices • ${onlineTotal} MQTT online • ${routeLabel} • ${historyLines.size} history`;
+  document.getElementById('stats').textContent = `${markers.size} active devices • ${onlineTotal} MQTT online • ${routeLabel}`;
 }
 
 let statsFramePending = false;
