@@ -20,3 +20,5 @@ __pycache__/
 # Generated npm dependencies and browser renderer assets
 node_modules/
 backend/static/vendor/
+channel_secrets.json
+data/

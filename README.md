@@ -396,3 +396,5 @@ This project was vibe-coded with Codex—please expect rough edges and the occas
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=yellowcooln/meshcore-mqtt-live-map&type=date&legend=top-left" />
  </picture>
 </a>
+
+Modified fork of yellowcooln/meshcore-mqtt-live-map, 2026-11-07, GPL-3.0.
