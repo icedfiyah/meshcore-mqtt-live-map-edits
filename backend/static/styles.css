@@ -1469,3 +1469,21 @@
     .bridge-frame-wrap { position: relative; flex: 1; min-height: 0; background: #fff; }
     .bridge-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
     .bridge-frame[hidden] { display: none; }
+
+    /* ---- Mobile layout ---- */
+    @media (max-width: 900px) {
+      :root { --bar-h: 66px; }
+      .hud { flex-wrap: wrap; align-content: center; gap: 4px 0; padding: 0 6px; }
+      .hud-header { display: none; }
+      .hud-buttons { width: 100%; gap: 3px; }
+      .hud .map-toggle, .hud .legend-toggle { flex: 1 1 auto; min-width: 0; font-size: 11px; padding: 5px 3px; text-align: center; }
+      .hud-info { width: 100%; margin: 0; gap: 8px; }
+      .hud-info .small { font-size: 10px; }
+      .config-menu { left: 6px; width: calc(100vw - 12px); }
+      .tropo-panel { left: 6px; width: calc(100vw - 12px); bottom: calc(var(--attr-h, 0px) + 6px); }
+      .tropo-panel.collapsed { width: auto; }
+      .tropo-controls .tropo-select { flex: 1 1 100%; width: auto; }
+      .leaflet-control-attribution { font-size: 9px; line-height: 1.25; padding: 1px 4px; }
+      .history-panel, .peers-panel, .route-details-panel { left: 6px; right: 6px; }
+      body.panels-open .leaflet-control-zoom { display: none; }
+    }

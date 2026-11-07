@@ -2813,7 +2813,21 @@ function setLabelsActive(active) {
   }
 }
 
+function updateAttrOffset() {
+  const attr = document.querySelector('.leaflet-control-attribution');
+  const mobile = window.matchMedia('(max-width: 900px)').matches;
+  const h = attr && mobile ? Math.ceil(attr.offsetHeight) : 0;
+  document.documentElement.style.setProperty('--attr-h', `${h}px`);
+  return h;
+}
+(function watchAttribution() {
+  const attr = document.querySelector('.leaflet-control-attribution');
+  if (attr && 'ResizeObserver' in window) new ResizeObserver(() => { updateAttrOffset(); layoutSidePanels(); }).observe(attr);
+  window.addEventListener('resize', () => { updateAttrOffset(); layoutSidePanels(); });
+})();
+
 function layoutSidePanels() {
+  const attrH = updateAttrOffset();
   const panels = [];
   if (historyVisible && historyPanel && historyPanel.classList.contains('active')) panels.push(historyPanel);
   if (peersActive && peersPanel && peersPanel.classList.contains('active')) panels.push(peersPanel);
@@ -2825,6 +2839,7 @@ function layoutSidePanels() {
     panel.style.bottom = '';
     panel.style.maxHeight = '';
   });
+  document.body.classList.toggle('panels-open', panels.length > 0);
   if (!panels.length) return;
   const gap = 12;
   const availableHeight = Math.max(200, window.innerHeight - 70);
@@ -2841,7 +2856,9 @@ function layoutSidePanels() {
   }
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
   if (isMobile) {
-    let bottom = 12;
+    let bottom = 8 + attrH;
+    const tp = document.getElementById('tropo-panel');
+    if (tp && !tp.hidden) bottom += (tp.offsetHeight || 0) + gap;
     panels.slice().reverse().forEach(panel => {
       panel.style.bottom = `${bottom}px`;
       bottom += (panel.offsetHeight || 0) + gap;
@@ -4580,6 +4597,7 @@ if (tropoToggle && tropoPanel) {
     tropoCollapseBtn.textContent = c ? 'Tropo \u25B4' : 'Collapse';
     tropoCollapseBtn.setAttribute('aria-expanded', c ? 'false' : 'true');
   });
+  if ('ResizeObserver' in window) new ResizeObserver(() => layoutSidePanels()).observe(tropoPanel);
 }
 
 // ---- Header bar: config dropdown and credits ----
