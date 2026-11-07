@@ -4601,6 +4601,75 @@ if (configToggle && configMenu) {
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') setConfigOpen(false); });
 }
 const creditsModal = document.getElementById('credits-modal');
+// ---- Bridge: embedded locale sites. Add more locales by adding entries here. ----
+const BRIDGE_LOCALES = [
+  { id: 'gulf-coast', name: 'Gulf Coast', url: 'https://gulfcoastmesh.online/' },
+];
+const bridgeToggle = document.getElementById('bridge-toggle');
+const bridgePanel = document.getElementById('bridge-panel');
+const bridgeTabs = document.getElementById('bridge-tabs');
+const bridgeFrames = document.getElementById('bridge-frame-wrap');
+let bridgeActive = null;
+const bridgeFrameEls = new Map();
+function bridgeSelect(id) {
+  const loc = BRIDGE_LOCALES.find((l) => l.id === id);
+  if (!loc) return;
+  bridgeActive = id;
+  bridgeTabs.querySelectorAll('.bridge-tab').forEach((b) => {
+    const on = b.dataset.id === id;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  bridgeFrameEls.forEach((f, k) => { f.hidden = k !== id; });
+  if (!bridgeFrameEls.has(id)) {
+    const f = document.createElement('iframe');
+    f.className = 'bridge-frame';
+    f.title = loc.name;
+    f.src = loc.url;
+    f.referrerPolicy = 'no-referrer';
+    f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+    bridgeFrames.appendChild(f);
+    bridgeFrameEls.set(id, f);
+  }
+  const link = document.getElementById('bridge-open');
+  if (link) link.href = loc.url;
+}
+function setBridgeOpen(open) {
+  if (!bridgePanel || !bridgeToggle) return;
+  bridgePanel.hidden = !open;
+  bridgeToggle.classList.toggle('active', open);
+  if (open) {
+    setConfigOpen(false);
+    bridgeSelect(bridgeActive || BRIDGE_LOCALES[0].id);
+  }
+}
+if (bridgeToggle && bridgePanel && bridgeTabs && BRIDGE_LOCALES.length) {
+  BRIDGE_LOCALES.forEach((loc) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'bridge-tab';
+    b.dataset.id = loc.id;
+    b.setAttribute('role', 'tab');
+    b.textContent = loc.name;
+    b.addEventListener('click', () => bridgeSelect(loc.id));
+    bridgeTabs.appendChild(b);
+  });
+  const sp = document.createElement('span');
+  sp.className = 'bridge-tabs-spacer';
+  bridgeTabs.appendChild(sp);
+  const open = document.createElement('a');
+  open.id = 'bridge-open';
+  open.className = 'bridge-link';
+  open.target = '_blank';
+  open.rel = 'noopener';
+  open.textContent = 'Open in new tab';
+  bridgeTabs.appendChild(open);
+  bridgeToggle.addEventListener('click', () => setBridgeOpen(bridgePanel.hidden));
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && !bridgePanel.hidden && (!creditsModal || creditsModal.hidden)) setBridgeOpen(false);
+  });
+}
+
 const setCreditsOpen = (open) => { if (creditsModal) creditsModal.hidden = !open; };
 const creditsBtn = document.getElementById('credits-toggle');
 if (creditsBtn) creditsBtn.addEventListener('click', () => { setConfigOpen(false); setCreditsOpen(true); });

@@ -1457,3 +1457,15 @@
     .hud-header:empty { display: none; }
     .peers-panel .node-search { margin-top: 6px; width: 100%; }
     .peers-panel .node-search-results { position: static; margin-top: 4px; max-height: 160px; }
+
+    /* ---- Bridge (embedded locale sites) ---- */
+    .bridge-panel { position: fixed; top: var(--bar-h); left: 0; right: 0; bottom: 0; z-index: 1050; display: flex; flex-direction: column; background: #0b1220; color: #fff; font: 13px ui-sans-serif, system-ui, sans-serif; }
+    .bridge-panel[hidden] { display: none; }
+    .bridge-tabs { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: rgba(8, 13, 24, .98); border-bottom: 1px solid rgba(255, 255, 255, .18); overflow-x: auto; flex: none; }
+    .bridge-tab { font-size: 12px; background: rgba(255, 255, 255, .12); color: #fff; border: 1px solid rgba(255, 255, 255, .2); border-radius: 8px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+    .bridge-tab.active { background: rgba(34, 197, 94, .35); border-color: rgba(34, 197, 94, .6); }
+    .bridge-tabs-spacer { flex: 1; }
+    .bridge-link { color: #93c5fd; font-size: 12px; white-space: nowrap; margin-right: 6px; }
+    .bridge-frame-wrap { position: relative; flex: 1; min-height: 0; background: #fff; }
+    .bridge-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+    .bridge-frame[hidden] { display: none; }
