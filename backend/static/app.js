@@ -4551,8 +4551,7 @@ function tropoRender() {
 function tropoStatusText() {
   if (!tropoMan) return '';
   if (tropoMan.demo) return 'Demo data - not a forecast.';
-  const age = (Date.now() / 1000 - tropoMan.updated_epoch) / 3600;
-  return age > (tropoMan.warn_after_h || 3) ? 'Forecast may be stale.' : '';
+  return '';
 }
 
 async function tropoLoad() {
