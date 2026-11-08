@@ -317,7 +317,7 @@ let arcadeAnimFrame = null;
 
 const ROUTE_WIDTH_MIN = 1;
 const ROUTE_WIDTH_MAX = 12;
-let routeLineWidth = 5;
+let routeLineWidth = 2;
 {
   const storedWidth = Number(localStorage.getItem('meshmapRouteWidth'));
   if (Number.isFinite(storedWidth) && storedWidth >= ROUTE_WIDTH_MIN && storedWidth <= ROUTE_WIDTH_MAX) {
@@ -327,7 +327,7 @@ let routeLineWidth = 5;
 
 const ROUTE_TTL_MIN = 30;
 const ROUTE_TTL_MAX = 600;
-let routeDisplaySec = 120;
+let routeDisplaySec = 300;
 {
   const storedTtl = Number(localStorage.getItem('meshmapRouteTtl'));
   if (Number.isFinite(storedTtl) && storedTtl >= ROUTE_TTL_MIN && storedTtl <= ROUTE_TTL_MAX) {
@@ -529,8 +529,8 @@ if (validUnits.has(queryUnits)) {
   distanceUnits = queryUnits;
   localStorage.setItem('meshmapDistanceUnits2', distanceUnits);
 }
-const NODE_RADIUS_MIN = 2;
-const NODE_RADIUS_MAX = 14;
+const NODE_RADIUS_MIN = 1;
+const NODE_RADIUS_MAX = 12;
 const envNodeRadius = Number(config.nodeRadius);
 const defaultNodeRadius = Number.isFinite(envNodeRadius) ? envNodeRadius : 2;
 let nodeMarkerRadius = defaultNodeRadius;
