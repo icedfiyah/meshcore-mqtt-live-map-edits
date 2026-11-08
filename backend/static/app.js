@@ -315,6 +315,43 @@ const FLOW_MIN_DURATION_MS = 2800;
 const FLOW_MAX_DURATION_MS = 9000;
 let arcadeAnimFrame = null;
 
+const ROUTE_WIDTH_MIN = 1;
+const ROUTE_WIDTH_MAX = 12;
+let routeLineWidth = 5;
+{
+  const storedWidth = Number(localStorage.getItem('meshmapRouteWidth'));
+  if (Number.isFinite(storedWidth) && storedWidth >= ROUTE_WIDTH_MIN && storedWidth <= ROUTE_WIDTH_MAX) {
+    routeLineWidth = Math.round(storedWidth);
+  }
+}
+
+const ROUTE_TTL_MIN = 30;
+const ROUTE_TTL_MAX = 600;
+let routeDisplaySec = 120;
+{
+  const storedTtl = Number(localStorage.getItem('meshmapRouteTtl'));
+  if (Number.isFinite(storedTtl) && storedTtl >= ROUTE_TTL_MIN && storedTtl <= ROUTE_TTL_MAX) {
+    routeDisplaySec = Math.round(storedTtl / 30) * 30;
+  }
+}
+function formatRouteTtl(sec) {
+  const m = Math.floor(sec / 60);
+  const r = sec % 60;
+  if (!m) return `${r}s`;
+  return r ? `${m}m ${r}s` : `${m}m`;
+}
+function scheduleRouteExpiry(id, entry) {
+  if (!entry) return;
+  if (entry.timeout) clearTimeout(entry.timeout);
+  const startMs = Number.isFinite(entry.tsMs) ? entry.tsMs : getServerNowMs();
+  const ms = startMs + routeDisplaySec * 1000 - getServerNowMs();
+  if (ms <= 0) {
+    removeRoutes([id]);
+    return;
+  }
+  entry.timeout = setTimeout(() => removeRoutes([id]), Math.max(1000, ms));
+}
+
 function routeStyleForDisplay(payloadType, routeMode, arcadeMode = false) {
   const isFanout = routeMode === 'fanout';
   const payloadNum = Number(payloadType);
@@ -325,7 +362,7 @@ function routeStyleForDisplay(payloadType, routeMode, arcadeMode = false) {
     color: isAdvert
       ? '#ef4444'
       : (isTrace ? '#facc15' : (isMessage ? '#ff7a1a' : (isFanout ? '#2b8cff' : '#ff7a1a'))),
-    weight: isFanout ? 4 : 5,
+    weight: isFanout ? Math.max(ROUTE_WIDTH_MIN, routeLineWidth - 1) : routeLineWidth,
     opacity: isFanout ? 0.85 : 0.9,
     lineCap: 'butt',
     lineJoin: 'miter',
@@ -338,6 +375,10 @@ function routeStyleForDisplay(payloadType, routeMode, arcadeMode = false) {
     style.dashArray = '8 14';
   } else if (!isFanout) {
     style.dashArray = '8 14';
+  }
+  if (style.dashArray && routeLineWidth > 5) {
+    const k = routeLineWidth / 5;
+    style.dashArray = style.dashArray.split(' ').map(n => +(Number(n) * k).toFixed(1)).join(' ');
   }
   if (arcadeMode) {
     style.weight = isFanout ? 3 : 2.5;
@@ -467,6 +508,10 @@ const searchInput = document.getElementById('node-search');
 const searchResults = document.getElementById('node-search-results');
 const nodeSizeInput = document.getElementById('node-size');
 const nodeSizeValue = document.getElementById('node-size-value');
+const routeWidthInput = document.getElementById('route-width');
+const routeWidthValue = document.getElementById('route-width-value');
+const routeTtlInput = document.getElementById('route-ttl');
+const routeTtlValue = document.getElementById('route-ttl-value');
 let searchMatches = [];
 let focusDeviceToken = 0;
 const storedLabels = localStorage.getItem('meshmapShowLabels');
@@ -1440,7 +1485,7 @@ function setHistoryVisible(visible) {
   const btn = document.getElementById('history-toggle');
   if (btn) {
     btn.classList.toggle('active', visible);
-    btn.textContent = visible ? 'History: on' : 'History tool';
+    btn.textContent = 'History';
   }
   updateHistoryPanelVisibility();
   if (historyLegendGroup) {
@@ -1464,7 +1509,7 @@ function setHopsVisible(visible) {
   const btn = document.getElementById('hops-toggle');
   if (btn) {
     btn.classList.toggle('active', visible);
-    btn.textContent = visible ? 'Hide hops' : 'Show hops';
+    btn.textContent = 'Hops';
   }
   if (visible) {
     if (!map.hasLayer(hopLayer)) {
@@ -2396,7 +2441,7 @@ function setPeersActive(active) {
   peersActive = active;
   if (peersToggle) {
     peersToggle.classList.toggle('active', active);
-    peersToggle.textContent = active ? 'Peers: select node' : 'Peers tool';
+    peersToggle.textContent = 'Peers';
   }
   if (peersPanel) {
     peersPanel.classList.toggle('active', active);
@@ -2876,7 +2921,10 @@ function layoutSidePanels() {
 function setToolPanelCollapsed(panel, button, collapsed, storageKey) {
   if (!panel || !button) return;
   panel.classList.toggle('panel-collapsed', collapsed);
-  button.textContent = collapsed ? 'Expand' : 'Minimize';
+  const chipLabel = button.dataset.label;
+  button.textContent = chipLabel
+    ? (collapsed ? `${chipLabel} \u25B4` : 'Collapse')
+    : (collapsed ? 'Expand' : 'Minimize');
   button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   try {
     localStorage.setItem(storageKey, collapsed ? 'true' : 'false');
@@ -4135,11 +4183,9 @@ function upsertRoute(r, skipHeat = false) {
     showRouteDetails(entry.meta);
   }
 
-  if (entry.timeout) clearTimeout(entry.timeout);
-  if (r.expires_at) {
-    const ms = Math.max(1000, (r.expires_at * 1000) - getServerNowMs());
-    entry.timeout = setTimeout(() => removeRoutes([id]), ms);
-  }
+  const tsSec = Number(r.ts);
+  entry.tsMs = Number.isFinite(tsSec) && tsSec > 0 ? tsSec * 1000 : getServerNowMs();
+  scheduleRouteExpiry(id, entry);
 
   if (!skipHeat) {
     addHeatPoints(points, r.ts, r.payload_type);
@@ -4254,7 +4300,11 @@ function handleRealtimeMessage(msg) {
   }
 
   if (msg.type === "route_remove") {
-    removeRoutes(msg.route_ids || []);
+    // Lifetime is controlled client-side (Route time slider); the server keeps routes up to 10 minutes.
+    removeRoutes((msg.route_ids || []).filter(rid => {
+      const e = routeLines.get(rid);
+      return !e || !Number.isFinite(e.tsMs) || e.tsMs + routeDisplaySec * 1000 <= getServerNowMs();
+    }));
     return;
   }
 
@@ -4501,8 +4551,7 @@ function tropoStatusText() {
   if (!tropoMan) return '';
   if (tropoMan.demo) return 'Demo data - not a forecast.';
   const age = (Date.now() / 1000 - tropoMan.updated_epoch) / 3600;
-  const stale = age > (tropoMan.warn_after_h || 3) ? ' (may be stale)' : '';
-  return `Cycle ${tropoFmtUtc(new Date(tropoMan.cycle))}, updated ${age.toFixed(1)} h ago${stale}`;
+  return age > (tropoMan.warn_after_h || 3) ? 'Forecast may be stale.' : '';
 }
 
 async function tropoLoad() {
@@ -4712,9 +4761,9 @@ if (hud && queryMenuVisible !== null) {
   hud.classList.toggle('panel-hidden', !queryMenuVisible);
 }
 if (legendToggle && hud) {
-  const storedLegend = localStorage.getItem('meshmapLegendCollapsed');
+  const storedLegend = localStorage.getItem('meshmapLegendCollapsed2');
   const overrideLegend = queryLegendVisible === null ? null : !queryLegendVisible;
-  const initialLegendCollapsed = overrideLegend !== null ? overrideLegend : storedLegend === 'true';
+  const initialLegendCollapsed = overrideLegend !== null ? overrideLegend : storedLegend !== 'false';
   if (initialLegendCollapsed) {
     hud.classList.add('legend-collapsed');
     legendToggle.textContent = 'Show legend';
@@ -4722,10 +4771,10 @@ if (legendToggle && hud) {
   legendToggle.addEventListener('click', () => {
     const collapsed = hud.classList.toggle('legend-collapsed');
     legendToggle.textContent = collapsed ? 'Show legend' : 'Hide legend';
-    localStorage.setItem('meshmapLegendCollapsed', collapsed ? 'true' : 'false');
+    localStorage.setItem('meshmapLegendCollapsed2', collapsed ? 'true' : 'false');
   });
   if (overrideLegend !== null) {
-    localStorage.setItem('meshmapLegendCollapsed', overrideLegend ? 'true' : 'false');
+    localStorage.setItem('meshmapLegendCollapsed2', overrideLegend ? 'true' : 'false');
   }
 }
 
@@ -5126,6 +5175,30 @@ if (nodesToggle) {
 if (mqttOnlyToggle) {
   mqttOnlyToggle.addEventListener('click', () => {
     setMqttOnlyVisible(!mqttOnlyVisible);
+  });
+}
+if (routeWidthInput) {
+  routeWidthInput.value = String(routeLineWidth);
+  if (routeWidthValue) routeWidthValue.textContent = `${routeLineWidth}px`;
+  routeWidthInput.addEventListener('input', (ev) => {
+    const next = Math.round(Number(ev.target.value));
+    if (!Number.isFinite(next)) return;
+    routeLineWidth = Math.min(ROUTE_WIDTH_MAX, Math.max(ROUTE_WIDTH_MIN, next));
+    if (routeWidthValue) routeWidthValue.textContent = `${routeLineWidth}px`;
+    localStorage.setItem('meshmapRouteWidth', String(routeLineWidth));
+    syncAllRouteDisplays();
+  });
+}
+if (routeTtlInput) {
+  routeTtlInput.value = String(routeDisplaySec);
+  if (routeTtlValue) routeTtlValue.textContent = formatRouteTtl(routeDisplaySec);
+  routeTtlInput.addEventListener('input', (ev) => {
+    const next = Math.round(Number(ev.target.value) / 30) * 30;
+    if (!Number.isFinite(next)) return;
+    routeDisplaySec = Math.min(ROUTE_TTL_MAX, Math.max(ROUTE_TTL_MIN, next));
+    if (routeTtlValue) routeTtlValue.textContent = formatRouteTtl(routeDisplaySec);
+    localStorage.setItem('meshmapRouteTtl', String(routeDisplaySec));
+    Array.from(routeLines.entries()).forEach(([rid, e]) => scheduleRouteExpiry(rid, e));
   });
 }
 updateNodeSizeUi();

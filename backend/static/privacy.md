@@ -2,11 +2,11 @@
 
 Last updated: July 8, 2026
 
-This privacy policy describes the default behavior of MeshCore Live Map. Individual deployments may be operated by different people or organizations and may use different configuration, logs, reverse proxies, analytics, authentication, and third-party services.
+This privacy policy describes the default behavior of MeshClock.online. Individual deployments may be operated by different people or organizations and may use different configuration, logs, reverse proxies, analytics, authentication, and third-party services.
 
 ## Information displayed by the map
 
-MeshCore Live Map displays information received from MeshCore/MQTT feeds, which may include:
+MeshClock.online displays information received from MeshCore/MQTT feeds, which may include:
 
 - Node names and device identifiers
 - Public keys or shortened public-key prefixes

@@ -12,7 +12,7 @@
   <link rel="icon" href="{{SITE_ICON}}" />
   <link rel="apple-touch-icon" href="{{SITE_ICON}}" />
   <link rel="manifest" href="{{MANIFEST_HREF}}" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#141414" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta property="og:title" content="{{SITE_TITLE}}" />
   <meta property="og:description" content="{{SITE_DESCRIPTION}}" />
@@ -106,6 +106,16 @@
         <input class="node-size-range" id="node-size" type="range" min="2" max="14" step="1" />
         <span class="node-size-value" id="node-size-value"></span>
       </div>
+          <div class="node-size-control">
+        <span class="node-size-label">Route width</span>
+        <input class="node-size-range" id="route-width" type="range" min="1" max="12" step="1" value="5" />
+        <span class="node-size-value" id="route-width-value">5px</span>
+      </div>
+          <div class="node-size-control">
+        <span class="node-size-label">Route time</span>
+        <input class="node-size-range" id="route-ttl" type="range" min="30" max="600" step="30" value="120" />
+        <span class="node-size-value" id="route-ttl-value">2m</span>
+      </div>
           <div class="config-grid">
             <button class="map-toggle" id="heat-toggle" type="button">Hide heat</button>
             <button class="map-toggle" id="map-toggle" type="button">Dark map</button>
@@ -113,14 +123,8 @@
             <button class="map-toggle" id="labels-toggle" type="button">Labels Off</button>
             <button class="map-toggle" id="nodes-toggle" type="button">Hide nodes</button>
             <button class="map-toggle" id="coverage-toggle" type="button">Coverage</button>
+            <button class="map-toggle" id="legend-toggle" type="button">Show legend</button>
           </div>
-          <div class="route-node-filter">
-        <label for="route-node-filter">Filter Live Routes</label>
-        <input id="route-node-filter" type="search" autocomplete="off"
-          placeholder="Node name or key, comma separated..." />
-        <div class="node-search-results route-node-filter-results"
-          id="route-node-filter-results" hidden></div>
-      </div>
           <div class="route-byte-control" hidden style="display:none">
         <span class="route-byte-label">Path bytes</span>
         <details class="byte-dropdown" id="route-byte-filter">
@@ -133,7 +137,6 @@
           </div>
         </details>
       </div>
-          <button class="legend-toggle" id="legend-toggle" type="button">Hide legend</button>
           <div class="legend">
         <div class="legend-item"><span class="legend-line legend-trace"></span> Trace/path</div>
         <div class="legend-item"><span class="legend-line legend-message"></span> Message</div>
@@ -173,10 +176,10 @@
       </div>
         </div>
       </div>
-      <button class="map-toggle" id="hops-toggle" type="button">Show hops</button>
+      <button class="map-toggle" id="hops-toggle" type="button">Hops</button>
       <button class="map-toggle" id="tropo-toggle" type="button">Tropo</button>
-      <button class="map-toggle" id="history-toggle" type="button">History tool</button>
-      <button class="map-toggle" id="peers-toggle" type="button">Peers tool</button>
+      <button class="map-toggle" id="history-toggle" type="button">History</button>
+      <button class="map-toggle" id="peers-toggle" type="button">Peers</button>
       <button class="map-toggle" id="bridge-toggle" type="button">Bridge</button>
       <button class="map-toggle" id="credits-toggle" type="button">Credits</button>
     </div>
@@ -190,11 +193,11 @@
       
     </div>
   </div>
-  <div class="history-panel tool-panel" id="history-panel" hidden>
+  <div class="history-panel tool-panel chip-collapse" id="history-panel" hidden>
     <div class="tool-panel-header">
       <div class="small"><strong>History</strong></div>
       <button class="tool-panel-collapse" id="history-panel-collapse" type="button"
-        aria-controls="history-panel" aria-expanded="true">Minimize</button>
+        aria-controls="history-panel" aria-expanded="true" data-label="History">Collapse</button>
     </div>
     <div class="small" id="history-panel-label">History (24h • volume)</div>
     <label class="history-field">
@@ -220,7 +223,7 @@
     </label>
     <div class="small" id="history-link-size-value">1.0x</div>
   </div>
-  <div class="peers-panel tool-panel" id="peers-panel" hidden>
+  <div class="peers-panel tool-panel chip-collapse" id="peers-panel" hidden>
     <div class="tool-panel-header">
       <div class="small peers-panel-title">
         <strong id="peers-title">Node peers</strong>
@@ -229,13 +232,20 @@
       <div class="peers-header-actions">
         <button class="tool-panel-collapse" id="peers-clear" type="button">Clear peers</button>
         <button class="tool-panel-collapse" id="peers-panel-collapse" type="button"
-          aria-controls="peers-panel" aria-expanded="true">Minimize</button>
+          aria-controls="peers-panel" aria-expanded="true" data-label="Peers">Collapse</button>
       </div>
     </div>
     <div class="node-search">
         <input class="node-search-input" id="node-search" type="text" placeholder="Search nodes by name or key..."
           autocomplete="off" />
         <div class="node-search-results" id="node-search-results" hidden></div>
+      </div>
+    <div class="route-node-filter">
+        <label for="route-node-filter">Filter Live Routes</label>
+        <input id="route-node-filter" type="search" autocomplete="off"
+          placeholder="Node name or key, comma separated..." />
+        <div class="node-search-results route-node-filter-results"
+          id="route-node-filter-results" hidden></div>
       </div>
     <div class="small" id="peers-status">Select a node to view peers.</div>
     <div class="small" id="peers-meta" hidden></div>

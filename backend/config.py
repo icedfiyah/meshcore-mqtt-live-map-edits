@@ -59,7 +59,7 @@ DEVICE_TTL_WINDOW_SECONDS = int(DEVICE_TTL_HOURS * 3600)
 PATH_TTL_SECONDS = int(os.getenv("PATH_TTL_SECONDS", "172800"))  # 48 hours
 TRAIL_LEN = int(os.getenv("TRAIL_LEN", "30"))
 TRAIL_MAX_SEGMENT_KM = float(os.getenv("TRAIL_MAX_SEGMENT_KM", "10"))
-ROUTE_TTL_SECONDS = int(os.getenv("ROUTE_TTL_SECONDS", "120"))
+ROUTE_TTL_SECONDS = int(os.getenv("ROUTE_TTL_SECONDS", "600"))
 ROUTE_PAYLOAD_TYPES = os.getenv("ROUTE_PAYLOAD_TYPES", "8,9,2,5,4")
 ROUTE_PATH_MAX_LEN = int(os.getenv("ROUTE_PATH_MAX_LEN", "16"))
 ROUTE_MAX_HOP_DISTANCE = float(os.getenv("ROUTE_MAX_HOP_DISTANCE", "100"))
@@ -195,7 +195,7 @@ def public_app_path(path: str) -> str:
   return APP_BASE_PATH + path
 
 
-SITE_TITLE = os.getenv("SITE_TITLE", "Meshcore MQTT Live Map")
+SITE_TITLE = os.getenv("SITE_TITLE", "MeshClock.online")
 SITE_DESCRIPTION = os.getenv(
   "SITE_DESCRIPTION",
   "Live view of MeshCore nodes, message routes, and advert paths.",
@@ -204,7 +204,7 @@ SITE_OG_IMAGE = os.getenv("SITE_OG_IMAGE", "")
 SITE_URL = os.getenv("SITE_URL", "/")
 SITE_ICON = os.getenv("SITE_ICON", "/static/icon.svg")
 # Link to this fork's source code (GPL-3.0 requires offering the source).
-SOURCE_URL = os.getenv("SOURCE_URL", "https://example.com/CHANGE-ME-source").strip()
+SOURCE_URL = os.getenv("SOURCE_URL", "https://github.com/icedfiyah/meshcore-mqtt-live-map-edits").strip()
 SITE_FEED_NOTE = os.getenv("SITE_FEED_NOTE", "")
 CUSTOM_LINK_URL = os.getenv("CUSTOM_LINK_URL", "").strip()
 PACKET_ANALYZER_URL = os.getenv("PACKET_ANALYZER_URL", "").strip()

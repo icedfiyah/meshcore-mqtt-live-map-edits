@@ -3224,7 +3224,7 @@ def privacy_policy():
       max-width: 760px;
       margin: 32px auto;
       padding: 0 18px 48px;
-      background: #0f172a;
+      background: #141414;
       color: #e5e7eb;
       font: 16px/1.55 ui-sans-serif, system-ui, sans-serif;
     }}
@@ -3547,7 +3547,7 @@ def manifest():
           "purpose": "any maskable",
         },
       ]
-  short_name = SITE_TITLE if len(SITE_TITLE) <= 12 else SITE_TITLE[:12]
+  short_name = SITE_TITLE if len(SITE_TITLE) <= 16 else SITE_TITLE[:16]
   start_url = public_app_path("/")
   if not start_url.endswith("/"):
     start_url += "/"
@@ -3561,8 +3561,8 @@ def manifest():
       "scope": scope,
       "display": "standalone",
       "display_override": ["standalone", "minimal-ui"],
-      "background_color": "#0f172a",
-      "theme_color": "#0f172a",
+      "background_color": "#141414",
+      "theme_color": "#141414",
       "icons": icons,
     },
     media_type="application/manifest+json",

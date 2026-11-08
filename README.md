@@ -7,6 +7,13 @@
 > same-origin from `static/vendor/`. Set `SOURCE_URL` to the public location of
 > this fork's source to satisfy GPL-3.0. Upstream project:
 > https://github.com/yellowcooln/meshcore-mqtt-live-map
+>
+> **Modified work (GPL-3.0 section 5a).** This is a modified version of
+> yellowcooln/meshcore-mqtt-live-map v1.9.8, changed between 2026-11-07 and
+> 2026-11-08 (UI, header bar, forecast overlay, theming, branding). The full list
+> of changes is the git history of this repository since tag `v1.9.8`. Licensed
+> under GPL-3.0 with no additional terms; see [LICENSE](LICENSE). Original
+> copyright notices are retained.
 
 Version: `1.9.8` (see [VERSIONS.md](VERSIONS.md))
 
@@ -396,5 +403,3 @@ This project was vibe-coded with Codex—please expect rough edges and the occas
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=yellowcooln/meshcore-mqtt-live-map&type=date&legend=top-left" />
  </picture>
 </a>
-
-Modified fork of yellowcooln/meshcore-mqtt-live-map, 2026-11-07, GPL-3.0.
