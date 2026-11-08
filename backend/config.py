@@ -209,8 +209,8 @@ SITE_FEED_NOTE = os.getenv("SITE_FEED_NOTE", "")
 CUSTOM_LINK_URL = os.getenv("CUSTOM_LINK_URL", "").strip()
 PACKET_ANALYZER_URL = os.getenv("PACKET_ANALYZER_URL", "").strip()
 CORESCOPE_URL = os.getenv("CORESCOPE_URL", "").strip()
-# Root URL of the Tropo forecast site (serves data/latest.json). Same-origin by default.
-TROPO_BASE_URL = os.getenv("TROPO_BASE_URL", "/").strip() or "/"
+# Root URL of a forecast site serving data/latest.json. Empty = no forecast source connected.
+TROPO_BASE_URL = os.getenv("TROPO_BASE_URL", "").strip()
 QR_CODE_BUTTON_ENABLED = (
   os.getenv("QR_CODE_BUTTON_ENABLED", "false").lower() == "true"
 )

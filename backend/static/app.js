@@ -4413,7 +4413,8 @@ const TROPO_PRODUCTS = [
   ['type', 'Duct Type'],
   ['duration', 'Duct Duration'],
 ];
-const tropoRoot = (cleanConfigValue(config.tropoBaseUrl) || '/').replace(/\/*$/, '/');
+const tropoBase = cleanConfigValue(config.tropoBaseUrl);
+const tropoRoot = tropoBase ? tropoBase.replace(/\/*$/, '/') : '';
 const tropoToggle = document.getElementById('tropo-toggle');
 const tropoPanel = document.getElementById('tropo-panel');
 const tropoProductSel = document.getElementById('tropo-product');
@@ -4556,6 +4557,10 @@ function tropoStatusText() {
 
 async function tropoLoad() {
   if (tropoMan) return true;
+  if (!tropoRoot) {
+    tropoStatusEl.textContent = 'No forecast source connected.';
+    return false;
+  }
   if (!tropoLoading) {
     tropoLoading = fetch(`${tropoRoot}data/latest.json?_=${Date.now()}`, { cache: 'no-store' })
       .then((r) => {
@@ -4670,7 +4675,7 @@ if (configToggle && configMenu) {
 const creditsModal = document.getElementById('credits-modal');
 // ---- Bridge: embedded locale sites. Add more locales by adding entries here. ----
 const BRIDGE_LOCALES = [
-  { id: 'gulf-coast', name: 'Gulf Coast', url: 'https://gulfcoastmesh.online/' },
+  { id: 'gulf-coast', name: 'Gulf Coast', url: '' }, // set url to the locale site to connect it
 ];
 const bridgeToggle = document.getElementById('bridge-toggle');
 const bridgePanel = document.getElementById('bridge-panel');
@@ -4689,17 +4694,27 @@ function bridgeSelect(id) {
   });
   bridgeFrameEls.forEach((f, k) => { f.hidden = k !== id; });
   if (!bridgeFrameEls.has(id)) {
-    const f = document.createElement('iframe');
-    f.className = 'bridge-frame';
-    f.title = loc.name;
-    f.src = loc.url;
-    f.referrerPolicy = 'no-referrer';
-    f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+    let f;
+    if (loc.url) {
+      f = document.createElement('iframe');
+      f.className = 'bridge-frame';
+      f.title = loc.name;
+      f.src = loc.url;
+      f.referrerPolicy = 'no-referrer';
+      f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox');
+    } else {
+      f = document.createElement('div');
+      f.className = 'bridge-frame bridge-empty';
+      f.textContent = `${loc.name} is not connected yet.`;
+    }
     bridgeFrames.appendChild(f);
     bridgeFrameEls.set(id, f);
   }
   const link = document.getElementById('bridge-open');
-  if (link) link.href = loc.url;
+  if (link) {
+    link.hidden = !loc.url;
+    if (loc.url) link.href = loc.url;
+  }
 }
 function setBridgeOpen(open) {
   if (!bridgePanel || !bridgeToggle) return;
