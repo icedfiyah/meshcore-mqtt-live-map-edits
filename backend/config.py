@@ -195,7 +195,7 @@ def public_app_path(path: str) -> str:
   return APP_BASE_PATH + path
 
 
-SITE_TITLE = os.getenv("SITE_TITLE", "MeshClock.online")
+SITE_TITLE = os.getenv("SITE_TITLE", "MeshCore Live Map")
 SITE_DESCRIPTION = os.getenv(
   "SITE_DESCRIPTION",
   "Live view of MeshCore nodes, message routes, and advert paths.",

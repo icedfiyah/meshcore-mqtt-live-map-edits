@@ -10,7 +10,7 @@
 >
 > **Modified work (GPL-3.0 section 5a).** This is a modified version of
 > yellowcooln/meshcore-mqtt-live-map v1.9.8, changed between 2026-11-07 and
-> 2026-11-08 (UI, header bar, forecast overlay, theming, branding). The full list
+> 2026-11-08 (UI, header bar, forecast overlay, theming). The full list
 > of changes is the git history of this repository since tag `v1.9.8`. Licensed
 > under GPL-3.0 with no additional terms; see [LICENSE](LICENSE). Original
 > copyright notices are retained.
