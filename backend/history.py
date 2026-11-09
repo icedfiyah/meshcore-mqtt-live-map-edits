@@ -310,7 +310,7 @@ def _record_route_history(
 
   if not ROUTE_HISTORY_ENABLED:
     if peer_recorded:
-      _prune_peer_history(ts)
+      # Periodic reaper handles peer-history pruning.
       state.state_dirty = True
     return [], []
   if not _history_payload_allowed(payload_type):
@@ -318,7 +318,7 @@ def _record_route_history(
 
   if not isinstance(points, list) or len(points) < 2:
     if peer_recorded:
-      _prune_peer_history(ts)
+      # Periodic reaper handles peer-history pruning.
       state.state_dirty = True
     return [], []
 
@@ -367,14 +367,14 @@ def _record_route_history(
 
   if not new_entries:
     if peer_recorded:
-      _prune_peer_history(ts)
+      # Periodic reaper handles peer-history pruning.
       state.state_dirty = True
     return [], []
 
   state.route_history_segments.extend(new_entries)
   _append_route_history_file(new_entries)
   if new_entries or peer_recorded:
-    _prune_peer_history(ts)
+    # Periodic reaper handles peer-history pruning.
     state.state_dirty = True
 
   updates = [
